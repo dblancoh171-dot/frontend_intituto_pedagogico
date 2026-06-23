@@ -1,38 +1,177 @@
-.App {
-  text-align: center;
+/* Estilos Generales */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f3f4f6;
+  margin: 0;
+  padding: 20px;
+  color: #333;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  background-color: #f9fafb;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
+/* Encabezado */
+.header {
+  border-bottom: 2px solid #e5e7eb;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+}
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  color: #1f2937;
+}
+.header p {
+  margin: 5px 0 0 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+/* Alertas de Mensajes */
+.alerta {
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.alerta-exito {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-left: 5px solid #10b981;
+}
+.alerta-error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-left: 5px solid #ef4444;
+}
+
+/* Distribución en Columnas (Formulario) */
+.grid-matricula {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 25px;
+}
+
+@media (min-width: 768px) {
+  .grid-matricula {
+    grid-template-columns: 1fr 2fr;
   }
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+/* Panel Izquierdo (Controles) */
+.panel-control {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  height: fit-content;
+}
+.panel-control h2, .panel-tabla h2 {
+  margin-top: 0;
+  font-size: 16px;
+  color: #4b5563;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 10px;
+}
+
+.grupo-campo {
+  margin-bottom: 15px;
+}
+.grupo-campo label {
+  display: block;
+  font-size: 12px;
+  font-weight: bold;
+  color: #4b5563;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.grupo-campo select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+.input-deshabilitado {
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Botón de Envío */
+.btn-enviar {
+  width: 100%;
+  background-color: #2563eb;
   color: white;
+  border: none;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn-enviar:hover {
+  background-color: #1d4ed8;
+}
+.btn-enviar:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
 }
 
-.App-link {
-  color: #61dafb;
+/* Panel Derecho (Tabla de Cursos) */
+.panel-tabla {
+  background-color: #ffffff;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.tabla-cursos {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 14px;
 }
+.tabla-cursos th {
+  background-color: #f9fafb;
+  color: #6b7280;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 12px;
+  padding: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+.tabla-cursos td {
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* Filas especiales según notas */
+.fila-normal {
+  background-color: #ffffff;
+}
+.fila-bloqueada {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+/* Etiquetas de Estado en la tabla */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.badge-disponible { background-color: #dbeafe; color: #1e40af; }
+.badge-aprobado { background-color: #d1fae5; color: #065f46; }
+.badge-bloqueado { background-color: #fee2e2; color: #991b1b; }
