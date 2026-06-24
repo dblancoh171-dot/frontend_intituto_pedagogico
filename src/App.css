@@ -65,14 +65,16 @@ body {
   }
 }
 
-/* Panel Izquierdo (Controles) */
-.panel-control {
+
+.panel-tabla {
   background-color: #ffffff;
-  padding: 20px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-  height: fit-content;
+  padding: 16px;                 /* Genera el espacio por arriba, abajo, izquierda y derecha */
+  border: 1px solid #e5e7eb;     /* El mismo borde gris sutil del resumen */
+  border-radius: 8px;            /* La misma curvatura de esquinas moderna */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
 }
+
+
 .panel-control h2, .panel-tabla h2 {
   margin-top: 0;
   font-size: 16px;
@@ -86,25 +88,40 @@ body {
 }
 .grupo-campo label {
   display: block;
-  font-size: 12px;
-  font-weight: bold;
-  color: #4b5563;
-  text-transform: uppercase;
-  margin-bottom: 5px;
+  font-size: 13px;
+  font-weight: 600;              /* Semibold, no tan pesado */
+  color: #1f2937;                /* Gris oscuro nítido corporativo */
+  margin-bottom: 6px;
 }
-.grupo-campo select {
+/* 1. Unificamos el tamaño, bordes y tipografía para select e input por igual */
+.grupo-campo select, .grupo-campo input {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
+  padding: 10px 14px;         /* Espaciado interno idéntico */
+  border: 1px solid #d1d5db;   /* Color de borde gris estándar */
+  border-radius: 6px;          /* Curvatura idéntica a la del select */
   font-size: 14px;
+  font-family: inherit;
   box-sizing: border-box;
+  height: 42px;                /* Forzamos exactamente la misma altura */
+  transition: all 0.2s ease;
 }
+
+/* 2. Le damos al input deshabilitado el mismo acabado visual del select bloqueado */
 .input-deshabilitado {
-  background-color: #f3f4f6;
-  color: #9ca3af;
+  background-color: #f3f4f6;   /* Mismo fondo gris sutil */
+  color: #4b5563;              /* Mismo tono de texto oscuro y nítido */
   cursor: not-allowed;
+  border: 1px solid #d1d5db;
+  outline: none;
 }
+
+/* Evitamos cualquier cambio visual al hacer clic */
+.input-deshabilitado:focus, .input-deshabilitado:active {
+  border: 1px solid #d1d5db;
+  outline: none;
+  background-color: #f3f4f6;
+}
+
 
 /* Botón de Envío */
 .btn-enviar {
@@ -127,32 +144,31 @@ body {
   cursor: not-allowed;
 }
 
-/* Panel Derecho (Tabla de Cursos) */
-.panel-tabla {
-  background-color: #ffffff;
-  padding: 20px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
-}
 
+/* 2. Estilizamos la tabla para que se adapte al contenedor con espaciado interno */
 .tabla-cursos {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;      /* Cambiamos a separate para que respete los márgenes */
+  border-spacing: 0;             /* Evita separaciones raras entre celdas */
   text-align: left;
-  font-size: 14px;
+  font-size: 13.5px;
 }
+/* Damos un margen sutil de separación interna a las celdas del encabezado */
 .tabla-cursos th {
-  background-color: #f9fafb;
-  color: #6b7280;
-  font-weight: bold;
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 700;
   text-transform: uppercase;
-  font-size: 12px;
-  padding: 12px;
-  border-bottom: 2px solid #e5e7eb;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 12px 14px;            /* Espaciado interno de las letras */
+  border-bottom: 2px solid #e2e8f0;
 }
+/* Damos el mismo margen a las filas de los cursos */
 .tabla-cursos td {
-  padding: 12px;
-  border-bottom: 1px solid #f3f4f6;
+  padding: 14px 14px;            /* Espacio cómodo para que respire el texto */
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
 }
 
 /* Filas especiales según notas */
@@ -175,3 +191,142 @@ body {
 .badge-disponible { background-color: #dbeafe; color: #1e40af; }
 .badge-aprobado { background-color: #d1fae5; color: #065f46; }
 .badge-bloqueado { background-color: #fee2e2; color: #991b1b; }
+
+/* Fila especial para los cursos en cargo por la tarde */
+.fila-cargo {
+  background-color: #fffbeb; /* Fondo amarillo/naranja muy suave */
+  color: #b45309;            /* Texto marrón/naranja oscuro */
+}
+
+.badge-cargo {
+  background-color: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+
+/* Caja estilizada con bordes para el Resumen de Matrícula */
+.panel-resumen-derecho {
+  background-color: #ffffff;
+  padding: 22px;
+  border: 1px solid #e5e7eb;     /* Genera el contorno sutil */
+  border-radius: 8px;            /* Curvatura de esquinas moderna */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* Rediseño estilizado de la Tabla */
+.tabla-cursos {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 13.5px;
+  margin-top: 10px;
+}
+
+/* El Encabezado de la Tabla (Gris limpio unificado) */
+.tabla-cursos th {
+  background-color: #f8fafc;
+  color: #475569;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+  padding: 14px 16px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+/* Las Celdas de Cursos */
+.tabla-cursos td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #334155;
+}
+
+/* Resalta sutilmente la fila al pasar el mouse por encima */
+.tabla-cursos tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Fila para cursos en cargo por la tarde */
+.fila-cargo {
+  background-color: #fffbeb !important; /* Fondo naranja/amarillo sutil */
+  color: #b45309;
+}
+.fila-cargo td {
+  color: #92400e;
+}
+
+
+/* Contenedor oscuro de fondo que bloquea la pantalla trasera */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4); /* Fondo translúcido */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* Por encima de cualquier elemento */
+}
+
+/* Caja blanca central del mensaje flotante */
+.modal-caja {
+  background-color: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: aparecerModal 0.2s ease-out;
+}
+
+@keyframes aparecerModal {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.modal-caja h3 {
+  margin: 0 0 10px 0;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.modal-caja p {
+  margin: 0 0 20px 0;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+}
+
+/* Fila de botones dentro del modal */
+.modal-botones {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Botón secundario para cancelar */
+.btn-cancelar {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.btn-cancelar:hover {
+  background-color: #e5e7eb;
+}
+
+/* Icono decorativo de éxito o advertencia */
+.modal-icono {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: inline-block;
+}
+
