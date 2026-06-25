@@ -635,3 +635,29 @@ body {
   gap: 8px !important;
   padding: 15px 0 !important;
 }
+
+
+
+
+
+
+/* --- CONFIGURACIÓN EXCLUSIVA PARA EL SIDEBAR DEL PROFESOR --- */
+
+/* Estado Activo para el Profesor (Verde Esmeralda Corporativo) */
+.sidebar-item.profesor-activo {
+  background-color: #f0fdf4;
+  color: #16a34a;
+  font-weight: 700;
+}
+
+/* Ajuste de color flotante para las opciones del profesor */
+.sidebar-item.profesor-item:hover {
+  background-color: #f4f4f5;
+  color: #16a34a;
+}
+
+/* Siglas del título corto para el rol docente */
+.sidebar-titulo-corto.prof-badge {
+  color: #16a34a;
+  background-color: #f0fdf4;
+}

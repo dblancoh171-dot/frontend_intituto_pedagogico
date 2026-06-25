@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const MatriculaForm = ({ onNombreCargado }) => {
+const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
     // ID de prueba fijo (Simula a Ana María con ID 1)
-    const [estudianteId] = useState(1);
+    const [estudianteId] = useState(estudianteIdFijo); 
     const [semestreId] = useState(1);
     const [cicloAMatricular, setCicloAMatricular] = useState(1);
 
