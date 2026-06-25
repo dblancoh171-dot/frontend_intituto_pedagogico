@@ -13,7 +13,7 @@ body {
   background-color: #f9fafb;
   padding: 30px;
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 /* Encabezado */
@@ -22,11 +22,13 @@ body {
   padding-bottom: 15px;
   margin-bottom: 25px;
 }
+
 .header h1 {
   margin: 0;
   font-size: 24px;
   color: #1f2937;
 }
+
 .header p {
   margin: 5px 0 0 0;
   color: #6b7280;
@@ -41,11 +43,13 @@ body {
   font-size: 14px;
   font-weight: 600;
 }
+
 .alerta-exito {
   background-color: #d1fae5;
   color: #065f46;
   border-left: 5px solid #10b981;
 }
+
 .alerta-error {
   background-color: #fee2e2;
   color: #991b1b;
@@ -68,14 +72,18 @@ body {
 
 .panel-tabla {
   background-color: #ffffff;
-  padding: 16px;                 /* Genera el espacio por arriba, abajo, izquierda y derecha */
-  border: 1px solid #e5e7eb;     /* El mismo borde gris sutil del resumen */
-  border-radius: 8px;            /* La misma curvatura de esquinas moderna */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); 
+  padding: 16px;
+  /* Genera el espacio por arriba, abajo, izquierda y derecha */
+  border: 1px solid #e5e7eb;
+  /* El mismo borde gris sutil del resumen */
+  border-radius: 8px;
+  /* La misma curvatura de esquinas moderna */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 
-.panel-control h2, .panel-tabla h2 {
+.panel-control h2,
+.panel-tabla h2 {
   margin-top: 0;
   font-size: 16px;
   color: #4b5563;
@@ -86,37 +94,49 @@ body {
 .grupo-campo {
   margin-bottom: 15px;
 }
+
 .grupo-campo label {
   display: block;
   font-size: 13px;
-  font-weight: 600;              /* Semibold, no tan pesado */
-  color: #1f2937;                /* Gris oscuro nítido corporativo */
+  font-weight: 600;
+  /* Semibold, no tan pesado */
+  color: #1f2937;
+  /* Gris oscuro nítido corporativo */
   margin-bottom: 6px;
 }
+
 /* 1. Unificamos el tamaño, bordes y tipografía para select e input por igual */
-.grupo-campo select, .grupo-campo input {
+.grupo-campo select,
+.grupo-campo input {
   width: 100%;
-  padding: 10px 14px;         /* Espaciado interno idéntico */
-  border: 1px solid #d1d5db;   /* Color de borde gris estándar */
-  border-radius: 6px;          /* Curvatura idéntica a la del select */
+  padding: 10px 14px;
+  /* Espaciado interno idéntico */
+  border: 1px solid #d1d5db;
+  /* Color de borde gris estándar */
+  border-radius: 6px;
+  /* Curvatura idéntica a la del select */
   font-size: 14px;
   font-family: inherit;
   box-sizing: border-box;
-  height: 42px;                /* Forzamos exactamente la misma altura */
+  height: 42px;
+  /* Forzamos exactamente la misma altura */
   transition: all 0.2s ease;
 }
 
 /* 2. Le damos al input deshabilitado el mismo acabado visual del select bloqueado */
 .input-deshabilitado {
-  background-color: #f3f4f6;   /* Mismo fondo gris sutil */
-  color: #4b5563;              /* Mismo tono de texto oscuro y nítido */
+  background-color: #f3f4f6;
+  /* Mismo fondo gris sutil */
+  color: #4b5563;
+  /* Mismo tono de texto oscuro y nítido */
   cursor: not-allowed;
   border: 1px solid #d1d5db;
   outline: none;
 }
 
 /* Evitamos cualquier cambio visual al hacer clic */
-.input-deshabilitado:focus, .input-deshabilitado:active {
+.input-deshabilitado:focus,
+.input-deshabilitado:active {
   border: 1px solid #d1d5db;
   outline: none;
   background-color: #f3f4f6;
@@ -136,9 +156,11 @@ body {
   cursor: pointer;
   transition: background-color 0.2s;
 }
+
 .btn-enviar:hover {
   background-color: #1d4ed8;
 }
+
 .btn-enviar:disabled {
   background-color: #9ca3af;
   cursor: not-allowed;
@@ -148,11 +170,14 @@ body {
 /* 2. Estilizamos la tabla para que se adapte al contenedor con espaciado interno */
 .tabla-cursos {
   width: 100%;
-  border-collapse: separate;      /* Cambiamos a separate para que respete los márgenes */
-  border-spacing: 0;             /* Evita separaciones raras entre celdas */
+  border-collapse: separate;
+  /* Cambiamos a separate para que respete los márgenes */
+  border-spacing: 0;
+  /* Evita separaciones raras entre celdas */
   text-align: left;
   font-size: 13.5px;
 }
+
 /* Damos un margen sutil de separación interna a las celdas del encabezado */
 .tabla-cursos th {
   background-color: #f8fafc;
@@ -161,12 +186,15 @@ body {
   text-transform: uppercase;
   font-size: 11px;
   letter-spacing: 0.5px;
-  padding: 12px 14px;            /* Espaciado interno de las letras */
+  padding: 12px 14px;
+  /* Espaciado interno de las letras */
   border-bottom: 2px solid #e2e8f0;
 }
+
 /* Damos el mismo margen a las filas de los cursos */
 .tabla-cursos td {
-  padding: 14px 14px;            /* Espacio cómodo para que respire el texto */
+  padding: 14px 14px;
+  /* Espacio cómodo para que respire el texto */
   border-bottom: 1px solid #f1f5f9;
   color: #334155;
 }
@@ -175,6 +203,7 @@ body {
 .fila-normal {
   background-color: #ffffff;
 }
+
 .fila-bloqueada {
   background-color: #fef2f2;
   color: #991b1b;
@@ -188,14 +217,28 @@ body {
   font-size: 12px;
   font-weight: 600;
 }
-.badge-disponible { background-color: #dbeafe; color: #1e40af; }
-.badge-aprobado { background-color: #d1fae5; color: #065f46; }
-.badge-bloqueado { background-color: #fee2e2; color: #991b1b; }
+
+.badge-disponible {
+  background-color: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-aprobado {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+.badge-bloqueado {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
 
 /* Fila especial para los cursos en cargo por la tarde */
 .fila-cargo {
-  background-color: #fffbeb; /* Fondo amarillo/naranja muy suave */
-  color: #b45309;            /* Texto marrón/naranja oscuro */
+  background-color: #fffbeb;
+  /* Fondo amarillo/naranja muy suave */
+  color: #b45309;
+  /* Texto marrón/naranja oscuro */
 }
 
 .badge-cargo {
@@ -208,8 +251,10 @@ body {
 .panel-resumen-derecho {
   background-color: #ffffff;
   padding: 22px;
-  border: 1px solid #e5e7eb;     /* Genera el contorno sutil */
-  border-radius: 8px;            /* Curvatura de esquinas moderna */
+  border: 1px solid #e5e7eb;
+  /* Genera el contorno sutil */
+  border-radius: 8px;
+  /* Curvatura de esquinas moderna */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -248,9 +293,11 @@ body {
 
 /* Fila para cursos en cargo por la tarde */
 .fila-cargo {
-  background-color: #fffbeb !important; /* Fondo naranja/amarillo sutil */
+  background-color: #fffbeb !important;
+  /* Fondo naranja/amarillo sutil */
   color: #b45309;
 }
+
 .fila-cargo td {
   color: #92400e;
 }
@@ -263,11 +310,13 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.4); /* Fondo translúcido */
+  background-color: rgba(0, 0, 0, 0.4);
+  /* Fondo translúcido */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999; /* Por encima de cualquier elemento */
+  z-index: 9999;
+  /* Por encima de cualquier elemento */
 }
 
 /* Caja blanca central del mensaje flotante */
@@ -283,8 +332,15 @@ body {
 }
 
 @keyframes aparecerModal {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .modal-caja h3 {
@@ -319,6 +375,7 @@ body {
   cursor: pointer;
   transition: background-color 0.15s;
 }
+
 .btn-cancelar:hover {
   background-color: #e5e7eb;
 }
@@ -330,3 +387,251 @@ body {
   display: inline-block;
 }
 
+
+/* Opaca las tablas de cursos para indicar que no son editables */
+.tabla-bloqueada-fechas {
+  opacity: 0.6;
+  pointer-events: none;
+  /* Bloquea cualquier intento de clic en los checkboxes */
+  cursor: not-allowed;
+}
+
+/* Barra de alerta superior persistente estilo corporativo */
+.alerta-tiempo-vencido {
+  background-color: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #991b1b;
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Selector plano bloqueado */
+.select-bloqueado {
+  background-color: #f3f4f6 !important;
+  color: #9ca3af !important;
+  cursor: not-allowed !important;
+}
+
+
+
+/* Contenedor global que divide la pantalla en dos: Sidebar e Interfaz */
+.contenedor-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+  /* Gris sutil de fondo para toda la app */
+}
+
+/* Estilo de la Barra Lateral Izquierda */
+.sidebar {
+  width: 260px;
+  background-color: #ffffff;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 0;
+  box-sizing: border-box;
+
+  /* 🔥 ANCLAJE ABSOLUTO: Ocupa todo el alto de la ventana y se queda congelado */
+  height: 100vh;
+  position: sticky;
+  top: 0;
+}
+
+/* Título superior de la Barra Lateral */
+.sidebar-titulo {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  padding: 0 20px 20px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 15px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Lista de opciones de navegación */
+.sidebar-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 0 12px;
+}
+
+/* Ítem o botón individual del menú */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sidebar-item:hover {
+  background-color: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Estado Activo (La opción iluminada en azul como en tu imagen) */
+.sidebar-item.activo {
+  background-color: #eff6ff;
+  color: #1d4ed8;
+}
+
+/* Sección inferior del perfil del usuario logueado */
+.sidebar-perfil {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px;
+  padding: 15px 16px;
+  border-top: 1px solid #f1f5f9;
+  margin: 0 12px
+}
+
+.sidebar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background-color: #cbd5e1;
+}
+
+.sidebar-usuario-info h4 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+/* Área derecha donde se renderizará el formulario de matrícula */
+.contenido-principal {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+
+/* Contenedor del encabezado del Sidebar */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px 20px 20px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 15px;
+}
+
+/* Botón de la Hamburguesa (Las 3 rayitas) */
+.btn-hamburguesa {
+  font-size: 20px;
+  background: none;
+  border: none;
+  color: #334155;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.btn-hamburguesa:hover {
+  color: #0f172a;
+}
+
+/* Texto del título al costado de las rayitas */
+.sidebar-titulo-texto {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+/* Transición suave para que el Sidebar no se encoja de golpe */
+.sidebar {
+  transition: width 0.2s ease-in-out;
+}
+
+/* 🔥 ESTADO COLAPSADO: El ancho se reduce drásticamente */
+.sidebar.colapsado {
+  width: 72px;
+}
+
+/* --- AGREGA O REEMPLAZA ESTO AL FINAL DE TU APP.CSS --- */
+
+/* Oculta los textos por completo de forma forzosa */
+.sidebar.colapsado .sidebar-titulo-texto,
+.sidebar.colapsado .sidebar-item span,
+.sidebar.colapsado .sidebar-usuario-info {
+  display: none !important;
+}
+
+/* Evita que los iconos intenten alinearse hacia abajo */
+.sidebar.colapsado .sidebar-item {
+  flex-direction: row !important;
+  justify-content: center !important;
+  font-size: 18px; /* Hace los emojis un poco más grandes al colapsar */
+  padding: 12px 0 !important;
+}
+
+
+
+/* --- ESTILOS PARA EL TÍTULO RESPONSIVO DEL SIDEBAR --- */
+
+/* Posicionamiento base de los títulos */
+.sidebar-titulo-contenedor {
+  display: flex;
+  align-items: center;
+}
+
+.sidebar-titulo-largo {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline; /* Visible por defecto */
+}
+
+/* El título corto nace oculto cuando el menú está abierto */
+.sidebar-titulo-corto {
+  font-size: 14px;
+  font-weight: 900;
+  color: #1d4ed8; /* Azul corporativo llamativo */
+  background-color: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: none; 
+}
+
+/* 🔥 CUANDO EL SIDEBAR SE COLAPSA: Intercambiamos los títulos */
+.sidebar.colapsado .sidebar-titulo-largo {
+  display: none !important; /* Escondemos el texto largo para que no rompa el diseño */
+}
+
+.sidebar.colapsado .sidebar-titulo-corto {
+  display: inline-block !important; /* Encendemos las siglas centradas al lado de la hamburguesa */
+}
+
+/* Ajuste de alineación para el encabezado cuando está encogido */
+.sidebar.colapsado .sidebar-header {
+  flex-direction: column !important; /* Pone la hamburguesa arriba y el "SA" abajo perfectamente ordenados */
+  gap: 8px !important;
+  padding: 15px 0 !important;
+}

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const MatriculaForm = () => {
+const MatriculaForm = ({ onNombreCargado }) => {
     // ID de prueba fijo (Simula a Ana María con ID 1)
-    const [estudianteId] = useState(4);
+    const [estudianteId] = useState(1);
     const [semestreId] = useState(1);
     const [cicloAMatricular, setCicloAMatricular] = useState(1);
 
     // Estados para los datos del backend
+    const [alumnoYaMatriculado, setAlumnoYaMatriculado] = useState(false);
     const [estudianteInfo, setEstudianteInfo] = useState(null);
     const [cursos, setCursos] = useState([]);
     const [ciclosPermitidos, setCiclosPermitidos] = useState([]);
     const [esAutomatica, setEsAutomatica] = useState(false); // 🔥 NUEVO: Detecta si es automática
+    const [fueraDeFecha, setFueraDeFecha] = useState(false);
     const [mensajeFeedback, setMensajeFeedback] = useState({ texto: '', tipo: '' });
     const [cargando, setCargando] = useState(false);
     const [selectedCursos, setSelectedCursos] = useState({});
@@ -21,66 +23,87 @@ const MatriculaForm = () => {
     const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
     const [mostrarModalExito, setMostrarModalExito] = useState(false);
 
-
-    // 1. Cargar perfil del estudiante y calcular las reglas de su matrícula
     // 1. Cargar perfil del estudiante y calcular las reglas de su matrícula
     useEffect(() => {
         const cargarPerfilYValidarCiclos = async () => {
+
             try {
-                // Traer datos del alumno de Aiven.io
                 const perfilRes = await axios.get(`http://localhost:5000/api/estudiantes/perfil/${estudianteId}`);
                 const estudiante = perfilRes.data;
                 setEstudianteInfo(estudiante);
 
-                // REGLA DE ORO DE 1ER CICLO: Si es ingresante, su matrícula es AUTOMÁTICA
-                if (estudiante.ciclo_actual === 1) {
-                    setEsAutomatica(true);
-                    setCiclosPermitidos([1]);
-                    setCicloAMatricular(1);
-                    return; // Frenamos aquí el flujo, no necesita evaluar notas anteriores
+
+                // 🔥 ENLACE DE DATOS: Enviamos el nombre real hacia la estructura de App.js / Sidebar
+                if (onNombreCargado && estudiante) {
+                    onNombreCargado(`${estudiante.nombres} ${estudiante.apellidos}`);
                 }
 
-                // Si es de ciclo 2 a más, consultamos sus notas previas para calcular restricciones
+                // Consultamos los cursos disponibles para el ciclo correspondiente
                 const notasRes = await axios.get(`http://localhost:5000/api/cursos/disponibles`, {
                     params: {
                         estudiante_id: estudianteId,
-                        ciclo_a_matricular: estudiante.ciclo_actual,
+                        ciclo_a_matricular: estudiante.ciclo_actual, // Si es 1, pedirá ciclo 1
                         carrera_id: estudiante.carrera_id
                     }
                 });
 
-                // 🔥 CORRECCIÓN: Extraemos el arreglo interno 'cursos' de forma segura
                 const listaCursos = notasRes.data.cursos || [];
-
-                // Contamos cuántos cursos tiene desaprobados en el ciclo que acaba de terminar
                 const cantidadJalados = listaCursos.filter(c => c.tipo === 'cargo').length;
 
                 let opcionesDeCiclo = [];
 
-                if (cantidadJalados >= 3) {
-                    // REGLA 3 JALADOS: Repite el ciclo completo por completo obligatoriamente
+                // 🔥 NUEVA REGLA UNIFICADA DE CICLOS
+                if (estudiante.ciclo_actual === 1) {
+                    // Alumno Ingresante: Su única opción en el menú es matricularse en el Ciclo 1
+                    opcionesDeCiclo = [1];
+                    setEsAutomatica(false); // 👈 CAMBIAMOS A FALSE para que React pinte las 3 columnas y el Resumen
+                } else if (cantidadJalados >= 3) {
+                    // Alumno Repitente de ciclos superiores
                     opcionesDeCiclo = [estudiante.ciclo_actual];
+                    setEsAutomatica(false);
                 } else {
-                    // REGLA 0, 1 o 2 JALADOS: Avanza con éxito al ciclo inmediato superior
+                    // Alumno Regular que avanza de ciclo
                     const cicloSiguiente = estudiante.ciclo_actual + 1;
-                    if (cicloSiguiente <= 10) {
-                        opcionesDeCiclo.push(cicloSiguiente);
-                    } else {
-                        opcionesDeCiclo.push(10);
-                    }
+                    if (cicloSiguiente <= 10) opcionesDeCiclo.push(cicloSiguiente);
+                    setEsAutomatica(false);
                 }
 
-                setEsAutomatica(false);
+                // Aseguramos que pasemos el arreglo completo al estado para que .map() no falle
                 setCiclosPermitidos(opcionesDeCiclo);
 
-                // Configura por defecto la primera opción válida calculada
+                // 🔥 CORRECCIÓN CRÍTICA: Aquí le pasábamos el objeto completo. 
+                // Ahora forzamos a que el selector tome el primer número del arreglo de forma directa
                 if (opcionesDeCiclo.length > 0) {
-                    setCicloAMatricular(opcionesDeCiclo[0]);
+                    setCicloAMatricular(opcionesDeCiclo[0]); // 👈 Agrega '[0]' aquí para extraer el número limpio (Ej: 1 o 3)
                 }
+
+
+
+                // --- PEGA ESTO JUSTO ANTES DE QUE CIERRE EL 'try' EN TU PRIMER useEffect ---
+
+                // Simulación real basada en tus datos insertados en Aiven.io
+                // Fecha actual del servidor: 25 de Junio de 2026
+                const fechaActual = new Date();
+                // Fecha de cierre que acabas de actualizar en MySQL Workbench: 24 de Junio de 2026
+                const fechaLimiteMatricula = new Date("2026-06-24T23:59:59");
+
+                if (fechaActual > fechaLimiteMatricula) {
+                    setFueraDeFecha(true); // 🔥 SE ENCIENDE EL BLOQUEO GENERAL
+                } else {
+                    setFueraDeFecha(false);
+                }
+
 
             } catch (error) {
                 console.error("Error al calcular la matrícula del alumno:", error);
             }
+
+
+
+
+
+
+
         };
         cargarPerfilYValidarCiclos();
     }, [estudianteId]);
@@ -95,16 +118,24 @@ const MatriculaForm = () => {
                     params: { estudiante_id: estudianteId, ciclo_a_matricular: cicloAMatricular, carrera_id: estudianteInfo.carrera_id }
                 });
 
+
+                // 1. Extraemos el arreglo de cursos de la respuesta del backend
                 const dataCursos = response.data.cursos || [];
                 setCursos(dataCursos);
+
+                // 2. 🔥 CAPTURAMOS LA BANDERA REAL DE LA BASE DE DATOS
+                setAlumnoYaMatriculado(response.data.yaMatriculado || false);
+
+                // 3. Guardamos el contador de deudas académicas para las validaciones
                 setTotalCargosPendientes(response.data.totalCargosPendientes || 0);
 
-                // Marcar por defecto los cursos que son obligatorios (regulares)
+                // 4. Marcar por defecto los cursos que son obligatorios (regulares)
                 const seleccionInicial = {};
                 dataCursos.forEach(c => {
                     if (c.obligatorio) seleccionInicial[c.id] = true;
                 });
                 setSelectedCursos(seleccionInicial);
+
 
             } catch (error) {
                 console.error("Error al traer los cursos:", error);
@@ -173,8 +204,13 @@ const MatriculaForm = () => {
     };
 
     // --- CÁLCULO DE CRÉDITOS Y VALIDADOR DE REGLAS DE CARGO ---
-    const cursosSeleccionadosLista = cursos.filter(c => selectedCursos[c.id]);
-    const totalCreditos = cursosSeleccionadosLista.reduce((sum, c) => sum + c.creditos, 0);
+    const cursosSeleccionadosLista = (cursos || []).filter(c => selectedCursos[c.id]);
+
+    const ocultarTotales = fueraDeFecha && !alumnoYaMatriculado;
+
+    const totalCursosMostrados = ocultarTotales ? 0 : cursosSeleccionadosLista.length;
+    const totalCreditosMostrados = ocultarTotales ? 0 : cursosSeleccionadosLista.reduce((sum, c) => sum + c.creditos, 0);
+
     const cargosSeleccionadosCount = cursosSeleccionadosLista.filter(c => c.tipo === 'cargo').length;
 
     // Regla de Oro: Si tiene 3 deudas o más, está obligado a seleccionar al menos 1 cargo
@@ -226,6 +262,19 @@ const MatriculaForm = () => {
                 </div>
             </div>
 
+
+            {/* PEGA ESTO ABAJO DEL PANEL DE DATOS DEL ESTUDIANTE */}
+            {fueraDeFecha && (
+                <div className="alerta-tiempo-vencido">
+                    <span>⏰</span>
+                    <div>
+                        <strong>PROCESO DE MATRÍCULA CONCLUIDO:</strong> El plazo regular establecido por la dirección académica para el periodo 2026-I finalizó el <strong>24/06/2026 a las 23:59</strong>. El sistema se encuentra en modo lectura. Comuníquese con la oficina de Registro Central.
+                    </div>
+                </div>
+            )}
+
+
+
             {/* Mensajes de Alerta del Servidor */}
             {mensajeFeedback.texto && (
                 <div className={`alerta ${mensajeFeedback.tipo === 'exito' ? 'alerta-exito' : 'alerta-error'}`}>
@@ -252,17 +301,18 @@ const MatriculaForm = () => {
 
                         <div className="grupo-campo">
                             <label>Ciclo a Matricular:</label>
-                            {esAutomatica ? (
-                                <input type="text" className="input-deshabilitado" value="Ciclo 1 (Automática - Ingresante)" readOnly />
-                            ) : (
-                                <select value={cicloAMatricular} onChange={(e) => setCicloAMatricular(Number(e.target.value))}>
-                                    {ciclosPermitidos.map((ciclo) => (
-                                        <option key={ciclo} value={ciclo}>
-                                            Ciclo {ciclo} {estudianteInfo && ciclo === estudianteInfo.ciclo_actual ? '(Repetir Ciclo)' : '(Siguiente Nivel)'}
-                                        </option>
-                                    ))}
-                                </select>
-                            )}
+                            <select
+                                value={cicloAMatricular}
+                                onChange={(e) => setCicloAMatricular(Number(e.target.value))}
+                                disabled={fueraDeFecha} // 🔥 Bloquea la interacción del menú
+                                className={fueraDeFecha ? "select-bloqueado" : ""} // Se pinta de gris suave
+                            >
+                                {ciclosPermitidos.map((ciclo) => (
+                                    <option key={ciclo} value={ciclo}>
+                                        Ciclo {ciclo} {estudianteInfo && estudianteInfo.ciclo_actual === 1 ? '(Ingresante)' : ciclo === estudianteInfo.ciclo_actual ? '(Repetir Ciclo)' : '(Siguiente Nivel)'}
+                                    </option>
+                                ))}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -273,7 +323,7 @@ const MatriculaForm = () => {
 
                     {/* COLUMNA 2: Tabla Central de Cursos Disponibles */}
 
-                    <div className="panel-tabla" style={{ overflow: 'hidden' }}>
+                    <div className={fueraDeFecha ? "panel-tabla tabla-bloqueada-fechas" : "panel-tabla"}>
                         {/* Título alineado elegantemente en texto plano */}
                         <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#000000', borderBottom: '2px solid #333333', paddingBottom: '6px', height: '23px' }}>
                             CURSOS DISPONIBLES (Ciclo {cicloAMatricular})
@@ -333,23 +383,35 @@ const MatriculaForm = () => {
 
                     {/* COLUMNA 3: Resumen de Matrícula Plano a la Derecha */}
                     {!esAutomatica && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingLeft: '10px' }}>
+                        <div style={{
+                            backgroundColor: fueraDeFecha ? '#f8fafc' : '#ffffff', // Fondo gris suave si está bloqueado
+                            borderColor: fueraDeFecha ? '#cbd5e1' : '#e5e7eb',     // Borde un poco más oscuro o neutro
+                            opacity: fueraDeFecha ? 0.75 : 1,                      // Opacidad para indicar modo lectura
+                            cursor: fueraDeFecha ? 'not-allowed' : 'default'
+                        }}>
                             {/* Cuadro del Resumen Minimalista */}
                             <div className="panel-resumen-derecho">
-                                <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 10px 0', color: '#000000', borderBottom: '2px solid #333333', paddingBottom: '6px' }}>
+                                <h2 style={{
+                                    fontSize: '15px',
+                                    fontWeight: 'bold',
+                                    margin: '0 0 10px 0',
+                                    color: fueraDeFecha ? '#64748b' : '#000000', // Texto del título gris si venció
+                                    borderBottom: fueraDeFecha ? '2px solid #94a3b8' : '2px solid #333333',
+                                    paddingBottom: '6px'
+                                }}>
                                     RESUMEN DE MATRÍCULA
                                 </h2>
-                                <div style={{ fontSize: '14px', lineHeight: '2' }}>
+                                <div style={{ fontSize: '14px', lineHeight: '2', color: fueraDeFecha ? '#64748b' : '#334155' }}>
                                     <p style={{ margin: '8px 0', display: 'flex', justifyContent: 'space-between' }}>
                                         <strong>Cursos Seleccionados:</strong>
-                                        <span style={{ fontWeight: 'bold' }}>{cursosSeleccionadosLista.length}</span>
+                                        <span style={{ fontWeight: 'bold' }}>{totalCursosMostrados}</span>
                                     </p>
                                     <p style={{ margin: '8px 0', display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e5e7eb', paddingBottom: '10px' }}>
                                         <strong>Total Créditos:</strong>
-                                        <span style={{ fontWeight: 'bold' }}>{totalCreditos}</span>
+                                        <span style={{ fontWeight: 'bold' }}>{totalCreditosMostrados}</span>
                                     </p>
-                                    <p style={{ fontSize: '12px', color: '#6b7280', margin: '10px 0 0 0', lineHeight: '1.4' }}>
-                                        Actualización a cursos en tiempo real.
+                                    <p style={{ fontSize: '12px', color: fueraDeFecha ? '#94a3b8' : '#6b7280', margin: '10px 0 0 0', lineHeight: '1.4' }}>
+                                        {fueraDeFecha ? "Carga académica consolidada (Modo lectura)." : "Actualización a cursos en tiempo real."}
                                     </p>
                                 </div>
                             </div>
@@ -357,11 +419,39 @@ const MatriculaForm = () => {
                             {/* BOTÓN GENERAL DE PROCESAMIENTO AL FINAL DE LA COLUMNA */}
                             <button
                                 type="button"
-                                disabled={cargando || violandoReglaDeDeuda}
+                                disabled={cargando || violandoReglaDeDeuda || (fueraDeFecha && !alumnoYaMatriculado)}
                                 className="btn-enviar"
-                                onClick={() => setMostrarModalConfirmar(true)}
+                                style={{
+                                    height: '42px',
+                                    fontSize: '14px',
+                                    borderRadius: '6px',
+                                    marginTop: '5px',
+                                    cursor: (fueraDeFecha && !alumnoYaMatriculado) ? 'not-allowed' : 'pointer',
+
+                                    // 🎨 CAMBIO DE COLOR DINÁMICO: 
+                                    // Si ya está matriculado, se pinta de color Verde Éxito Institucional.
+                                    // Si no se matriculó y ya cerró el proceso, se queda en gris apagado.
+                                    backgroundColor: alumnoYaMatriculado ? '#10b981' : fueraDeFecha ? '#9ca3af' : '#2563eb',
+                                    border: 'none',
+                                    color: '#ffffff',
+                                    fontWeight: 'bold',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifycontent: 'center',
+                                    gap: '8px'
+                                }}
+                                onClick={() => !fueraDeFecha && setMostrarModalConfirmar(true)}
                             >
-                                {cargando ? 'Procesando...' : 'Finalizar e Inscribir'}
+                                {cargando ? (
+                                    'Procesando...'
+                                ) : alumnoYaMatriculado ? (
+                                    // 📝 TEXTO DINÁMICO CONFIRMATORIO PARA EL ALUMNO
+                                    <>🛡️ Estudiante Matriculado</>
+                                ) : fueraDeFecha ? (
+                                    'Proceso Concluido'
+                                ) : (
+                                    'Finalizar e Inscribir'
+                                )}
                             </button>
 
                             {violandoReglaDeDeuda && (
@@ -376,116 +466,120 @@ const MatriculaForm = () => {
                 </div>
 
 
-            </form>
+            </form >
 
             {/* MODAL DE CONFIRMACIÓN */}
-            {mostrarModalConfirmar && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 9999
-                    }}
-                >
+            {
+                mostrarModalConfirmar && (
                     <div
                         style={{
-                            background: '#fff',
-                            padding: '25px',
-                            borderRadius: '10px',
-                            width: '400px',
-                            textAlign: 'center'
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 9999
                         }}
                     >
-                        <h3>Confirmar Matrícula</h3>
-
-                        <p>
-                            ¿Desea finalizar e inscribir los cursos seleccionados?
-                        </p>
-
                         <div
                             style={{
-                                display: 'flex',
-                                justifyContent: 'center',
-                                gap: '10px',
-                                marginTop: '20px'
+                                background: '#fff',
+                                padding: '25px',
+                                borderRadius: '10px',
+                                width: '400px',
+                                textAlign: 'center'
                             }}
                         >
-                            <button
-                                onClick={() => setMostrarModalConfirmar(false)}
+                            <h3>Confirmar Matrícula</h3>
+
+                            <p>
+                                ¿Desea finalizar e inscribir los cursos seleccionados?
+                            </p>
+
+                            <div
                                 style={{
-                                    padding: '10px 20px'
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    gap: '10px',
+                                    marginTop: '20px'
                                 }}
                             >
-                                Cancelar
-                            </button>
+                                <button
+                                    onClick={() => setMostrarModalConfirmar(false)}
+                                    style={{
+                                        padding: '10px 20px'
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+
+                                <button
+                                    onClick={confirmarYEnviarMatricula}
+                                    style={{
+                                        padding: '10px 20px'
+                                    }}
+                                >
+                                    Sí, Continuar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+
+            {/* MODAL DE ÉXITO */}
+            {
+                mostrarModalExito && (
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            backgroundColor: 'rgba(0,0,0,0.5)',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            zIndex: 9999
+                        }}
+                    >
+                        <div
+                            style={{
+                                background: '#fff',
+                                padding: '25px',
+                                borderRadius: '10px',
+                                width: '400px',
+                                textAlign: 'center'
+                            }}
+                        >
+                            <h3>Matrícula Exitosa</h3>
+
+                            <p>
+                                El estudiante ha sido matriculado correctamente.
+                            </p>
 
                             <button
-                                onClick={confirmarYEnviarMatricula}
+                                onClick={() => setMostrarModalExito(false)}
                                 style={{
+                                    marginTop: '15px',
                                     padding: '10px 20px'
                                 }}
                             >
-                                Sí, Continuar
+                                Aceptar
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* MODAL DE ÉXITO */}
-            {mostrarModalExito && (
-                <div
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        backgroundColor: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        zIndex: 9999
-                    }}
-                >
-                    <div
-                        style={{
-                            background: '#fff',
-                            padding: '25px',
-                            borderRadius: '10px',
-                            width: '400px',
-                            textAlign: 'center'
-                        }}
-                    >
-                        <h3>Matrícula Exitosa</h3>
-
-                        <p>
-                            El estudiante ha sido matriculado correctamente.
-                        </p>
-
-                        <button
-                            onClick={() => setMostrarModalExito(false)}
-                            style={{
-                                marginTop: '15px',
-                                padding: '10px 20px'
-                            }}
-                        >
-                            Aceptar
-                        </button>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
 
 
-        </div>
+        </div >
     );
 };
 
