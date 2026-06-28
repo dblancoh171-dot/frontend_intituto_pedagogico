@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
+const MisCursosProfesor = ({ profesorIdId, onCambiarVista, onAbrirSesiones }) => {
     const [cursos, setCursos] = useState([]);
     const [cargando, setCargando] = useState(true);
     const semestreId = 1; // ID del semestre de tus pruebas en Workbench
@@ -28,7 +28,7 @@ const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
 
     return (
         <div style={{ animation: 'fadeIn 0.25s ease-in-out', maxWidth: '1100px', margin: '0 auto' }}>
-            
+
             {/* Encabezado Principal */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '12px', borderBottom: '1px solid #e2e8f0' }}>
                 <div>
@@ -50,13 +50,13 @@ const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
                         const notasPendientes = Number(c.notas_pendientes_count || 0);
 
                         return (
-                            <div 
-                                key={c.curso_id} 
-                                style={{ 
-                                    backgroundColor: '#ffffff', 
-                                    border: '1px solid #e2e8f0', 
-                                    borderRadius: '12px', 
-                                    padding: '24px', 
+                            <div
+                                key={c.curso_id}
+                                style={{
+                                    backgroundColor: '#ffffff',
+                                    border: '1px solid #e2e8f0',
+                                    borderRadius: '12px',
+                                    padding: '24px',
                                     boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                                     display: 'flex',
                                     flexDirection: 'column',
@@ -85,12 +85,12 @@ const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
 
                                     {/* 🔥 BLOQUE DE LAS DOS NOTIFICACIONES COMPLEMENTARIAS DUALES */}
                                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                        
+
                                         {/* 🏷️ ÓVALO 1: Alerta de Horario (Verde brillante si dicta hoy/mañana, Gris si no) */}
-                                        <span style={{ 
-                                            fontSize: '12px', 
-                                            fontWeight: '600', 
-                                            padding: '5px 12px', 
+                                        <span style={{
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            padding: '5px 12px',
                                             borderRadius: '20px',
                                             backgroundColor: statusClase.includes('Sin') ? '#f3f4f6' : '#dcfce7',
                                             color: statusClase.includes('Sin') ? '#64748b' : '#15803d'
@@ -99,16 +99,16 @@ const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
                                         </span>
 
                                         {/* 🏷️ ÓVALO 2: Alerta de Notas Pendientes (Naranja si faltan alumnos, Azul si ya terminó) */}
-                                        <span style={{ 
-                                            fontSize: '12px', 
-                                            fontWeight: '600', 
-                                            padding: '5px 12px', 
+                                        <span style={{
+                                            fontSize: '12px',
+                                            fontWeight: '600',
+                                            padding: '5px 12px',
                                             borderRadius: '20px',
                                             backgroundColor: notasPendientes > 0 ? '#ffedd5' : '#e0f2fe',
                                             color: notasPendientes > 0 ? '#c2410c' : '#0369a1'
                                         }}>
-                                            📝 {notasPendientes > 0 
-                                                ? `Faltan ingresar ${notasPendientes} notas` 
+                                            📝 {notasPendientes > 0
+                                                ? `Faltan ingresar ${notasPendientes} notas`
                                                 : 'Acta de Notas Completa ✓'}
                                         </span>
 
@@ -117,19 +117,32 @@ const MisCursosProfesor = ({ profesorIdId, onCambiarVista }) => {
 
                                 {/* PARTE INFERIOR DE LA FILA: Botones Duales Corporativos */}
                                 <div style={{ display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
-                                    <button 
-                                        type="button" 
-                                        style={{ 
-                                            flex: 1, height: '42px', backgroundColor: '#0284c7', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '13.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
+                                    <button
+                                        type="button"
+                                        onClick={() => onAbrirSesiones({ id: c.curso_id, nombre: c.curso_nombre, codigo: c.codigo })} // 👈 ASEGÚRATE DE AGREGAR 'id: c.curso_id' AQUÍ
+                                        style={{
+                                            flex: 1,
+                                            height: '42px',
+                                            backgroundColor: '#0284c7',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '13.5px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '8px'
                                         }}
                                     >
                                         📅 Gestionar Asistencia y Sesiones
                                     </button>
 
-                                    <button 
-                                        type="button" 
-                                        onClick={() => onCambiarVista('notas')} 
-                                        style={{ 
+                                    <button
+                                        type="button"
+                                        onClick={() => onCambiarVista('notas')}
+                                        style={{
                                             flex: 1, height: '42px', backgroundColor: '#0f172a', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '13.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
                                         }}
                                     >

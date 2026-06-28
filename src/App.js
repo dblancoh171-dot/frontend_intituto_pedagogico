@@ -4,6 +4,8 @@ import Sidebar from './components/Sidebar';
 import SidebarProfesor from './components/SidebarProfesor';
 import MatriculaForm from './components/MatriculaForm';
 import MisCursosProfesor from './components/MisCursosProfesor'; // 🔥 Agregamos el nuevo archivo
+import GestionarSesiones from './components/GestionarSesiones';
+import ContenidoClase from './components/ContenidoClase';
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
 import './App.css';
@@ -16,12 +18,16 @@ function App() {
   const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
 
   const [estudianteIdId, setEstudianteIdId] = useState(1);
-  const [profesorIdId, setProfesorIdId] = useState(2); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
+  const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
 
   // 🔥 CONTROL DE PESTAÑAS: Forzamos la selección inicial del sub-menú en 'perfil'
   const [subSeccionActiva, setSubSeccionActiva] = useState('perfil');
   const [nombreParaSidebar, setNombreParaSidebar] = useState("Cargando...");
   const [sidebarColapsado, setSidebarColapsado] = useState(false);
+
+  const [cursoParaSesiones, setCursoParaSesiones] = useState(null);
+
+  const [sesionParaContenido, setSesionParaContenido] = useState(null);
 
   // 🔄 REGLA DE RESET: Cada vez que cambies a mano el ID de pruebas, 
   // el sistema regresará la vista activa de forma obligatoria a 'perfil'
@@ -41,7 +47,7 @@ function App() {
         .catch(err => console.error("Error al sincronizar perfil del estudiante:", err));
     } else if (rolActivo === 'profesor') {
       // Si la sesión es de rol docente, consultamos su tabla correspondiente
-      axios.get(`http://localhost:5000/api/profesores/perfil/${profesorIdId}`)
+      axios.get(`http://localhost:5000/api/notas/profesores/perfil/${profesorIdId}`)
         .then(res => {
           if (res.data) {
             setNombreParaSidebar(`${res.data.nombres} ${res.data.apellidos}`);
@@ -54,20 +60,6 @@ function App() {
     }
   }, [estudianteIdId, profesorIdId, rolActivo]);
 
-  // 📡 EFECTO EXCLUSIVO: Traer el nombre real del profesor desde el Backend
-  useEffect(() => {
-    if (rolActivo === 'profesor') {
-      // Usaremos tu endpoint de perfiles (crearemos una ruta rápida para profesores o usamos una existente)
-      axios.get(`http://localhost:5000/api/profesores/perfil/${profesorIdId}`)
-        .then(res => {
-          if (res.data) setNombreParaSidebar(`${res.data.nombres} ${res.data.apellidos}`);
-        })
-        .catch(err => {
-          // Respaldo manual en caso de que aún no levantes el endpoint de lectura
-          setNombreParaSidebar(profesorIdId === 1 ? "Juan Marcos Mendoza" : "Rosa Elvira García Torres");
-        });
-    }
-  }, [profesorIdId, rolActivo]);
 
   return (
     <div className="contenedor-layout">
@@ -96,13 +88,13 @@ function App() {
         {rolActivo === 'estudiante' ? (
           subSeccionActiva === 'perfil' ? (
             /* 👤 Componente de Ficha del Alumno (Crea un div temporal o tu componente si ya lo tienes) */
-            <div className="panel-control" key={`perf-${estudianteIdId}`}>
+            <div className="panel-control" key={`perf-est-${estudianteIdId}`}>
               <h2>PERFIL ACADÉMICO DEL ESTUDIANTE</h2>
               <p style={{ marginTop: '15px', color: '#475569' }}>
                 Bienvenido al portal institucional. Aquí se desplegará tu información de contacto, ficha de matrícula vigente y estados de cuenta generales.
               </p>
               <div style={{ marginTop: '20px', fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a' }}>
-                👤 Identificación en sesión: {nombreParaSidebar} (ID: {estudianteIdId})
+                Documento / Código detectado en sesión: {nombreParaSidebar} (ID: {estudianteIdId})
               </div>
             </div>
           ) : (
@@ -131,14 +123,40 @@ function App() {
             <MisCursosProfesor
               profesorIdId={profesorIdId}
               onCambiarVista={setSubSeccionActiva}
+              // 🔥 Pasamos una función para capturar los datos del curso clickeado
+              onAbrirSesiones={(curso) => {
+                setCursoParaSesiones(curso);
+                setSubSeccionActiva('sesiones'); // Abre la nueva vista
+              }}
             />
-          ) : (
-            /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
-            <div className="panel-control">
-              <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
-            </div>
-          )
+          ): subSeccionActiva === 'sesiones' ? (
+          <GestionarSesiones
+            cursoNombre={cursoParaSesiones?.nombre}
+            codigoCurso={cursoParaSesiones?.codigo}
+            cursoId={cursoParaSesiones?.id}
+            onRegresar={() => setSubSeccionActiva('cursos')}
+            // 🔥 CAPTURAMOS LA SESIÓN ELEGIDA DESDE EL HIJO Y CAMBIAMOS LA VISTA
+            onAbrirContenido={(sesion) => {
+              setSesionParaContenido(sesion);
+              setSubSeccionActiva('contenido-clase');
+            }}
+          />
+        ) : subSeccionActiva === 'contenido-clase' ? (
+          /* 🔥 NUEVA PESTAÑA: Panel de Edición y Materiales */
+          <ContenidoClase
+            sesionNumero={sesionParaContenido?.numero}
+            tituloInicial={sesionParaContenido?.titulo}
+            sesionId={sesionParaContenido?.id}
+            onRegresar={() => setSubSeccionActiva('sesiones')}
+          />
+        ) : (
+          
+          /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
+          <div className="panel-control">
+            <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
+            <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
+          </div>
+        )
         )}
       </div>
 
