@@ -3,7 +3,7 @@ import axios from 'axios';
 
 const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
     // ID de prueba fijo (Simula a Ana María con ID 1)
-    const [estudianteId] = useState(estudianteIdFijo); 
+    const [estudianteId] = useState(estudianteIdFijo);
     const [semestreId] = useState(1);
     const [cicloAMatricular, setCicloAMatricular] = useState(1);
 
@@ -26,84 +26,62 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
     // 1. Cargar perfil del estudiante y calcular las reglas de su matrícula
     useEffect(() => {
         const cargarPerfilYValidarCiclos = async () => {
-
             try {
                 const perfilRes = await axios.get(`http://localhost:5000/api/estudiantes/perfil/${estudianteId}`);
-                const estudiante = perfilRes.data;
+
+                // 🔥 TRUCO DE INGENIERÍA: Si el backend manda un arreglo, extraemos la primera fila directo
+                const estudiante = Array.isArray(perfilRes.data) ? perfilRes.data[0] : perfilRes.data;
                 setEstudianteInfo(estudiante);
 
-
-                // 🔥 ENLACE DE DATOS: Enviamos el nombre real hacia la estructura de App.js / Sidebar
                 if (onNombreCargado && estudiante) {
                     onNombreCargado(`${estudiante.nombres} ${estudiante.apellidos}`);
                 }
 
-                // Consultamos los cursos disponibles para el ciclo correspondiente
+                // Consolidamos la llamada adaptada a tus nuevas columnas del backend
                 const notasRes = await axios.get(`http://localhost:5000/api/cursos/disponibles`, {
                     params: {
                         estudiante_id: estudianteId,
-                        ciclo_a_matricular: estudiante.ciclo_actual, // Si es 1, pedirá ciclo 1
-                        carrera_id: estudiante.carrera_id
+                        // Si ciclo_actual viene nulo o indefinido del perfil, forzamos ciclo 1 de respaldo
+                        ciclo_a_matricular: estudiante.ciclo_actual || estudiante.ciclo_cursado || 1,
+                        carrera_id: estudiante.carrera_id || 1
                     }
                 });
 
                 const listaCursos = notasRes.data.cursos || [];
                 const cantidadJalados = listaCursos.filter(c => c.tipo === 'cargo').length;
-
                 let opcionesDeCiclo = [];
 
-                // 🔥 NUEVA REGLA UNIFICADA DE CICLOS
-                if (estudiante.ciclo_actual === 1) {
-                    // Alumno Ingresante: Su única opción en el menú es matricularse en el Ciclo 1
+                // Evaluamos usando el nombre de columna correcto
+                const cicloOrigen = Number(estudiante.ciclo_actual || estudiante.ciclo_cursado || 1);
+
+                if (cicloOrigen === 1) {
                     opcionesDeCiclo = [1];
-                    setEsAutomatica(false); // 👈 CAMBIAMOS A FALSE para que React pinte las 3 columnas y el Resumen
+                    setEsAutomatica(false);
                 } else if (cantidadJalados >= 3) {
-                    // Alumno Repitente de ciclos superiores
-                    opcionesDeCiclo = [estudiante.ciclo_actual];
+                    opcionesDeCiclo = [cicloOrigen];
                     setEsAutomatica(false);
                 } else {
-                    // Alumno Regular que avanza de ciclo
-                    const cicloSiguiente = estudiante.ciclo_actual + 1;
+                    const cicloSiguiente = cicloOrigen + 1;
                     if (cicloSiguiente <= 10) opcionesDeCiclo.push(cicloSiguiente);
                     setEsAutomatica(false);
                 }
 
-                // Aseguramos que pasemos el arreglo completo al estado para que .map() no falle
-                setCiclosPermitidos(opcionesDeCiclo);
+                setCiclosPermitidos(opcionesDeCiclo); // 👈 Corregido el nombre legítimo
 
-                // 🔥 CORRECCIÓN CRÍTICA: Aquí le pasábamos el objeto completo. 
-                // Ahora forzamos a que el selector tome el primer número del arreglo de forma directa
                 if (opcionesDeCiclo.length > 0) {
-                    setCicloAMatricular(opcionesDeCiclo[0]); // 👈 Agrega '[0]' aquí para extraer el número limpio (Ej: 1 o 3)
+                    setCicloAMatricular(opcionesDeCiclo[0]); // 👈 Extrae el número directo (Ej: 1)
                 }
 
-
-
-                // --- PEGA ESTO JUSTO ANTES DE QUE CIERRE EL 'try' EN TU PRIMER useEffect ---
-
-                // Simulación real basada en tus datos insertados en Aiven.io
-                // Fecha actual del servidor: 25 de Junio de 2026
                 const fechaActual = new Date();
-                // Fecha de cierre que acabas de actualizar en MySQL Workbench: 24 de Junio de 2026
-                const fechaLimiteMatricula = new Date("2026-06-24T23:59:59");
-
+                const fechaLimiteMatricula = new Date("2026-06-30T23:59:59");
                 if (fechaActual > fechaLimiteMatricula) {
-                    setFueraDeFecha(true); // 🔥 SE ENCIENDE EL BLOQUEO GENERAL
+                    setFueraDeFecha(true);
                 } else {
                     setFueraDeFecha(false);
                 }
-
-
             } catch (error) {
-                console.error("Error al calcular la matrícula del alumno:", error);
+                console.error("🚨 Error al calcular la matrícula del alumno:", error);
             }
-
-
-
-
-
-
-
         };
         cargarPerfilYValidarCiclos();
     }, [estudianteId]);
@@ -111,31 +89,31 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
 
     // 2. Cargar cursos (Trae los normales del ciclo + los cargos si existen)
     useEffect(() => {
-        if (!estudianteInfo) return;
+        if (!estudianteInfo || !estudianteInfo.carrera_id) return;
         const cargarCursos = async () => {
             try {
+                console.log("-> [AXIOS] Solicitando asignaturas elegibles con parámetros limpios...");
+
                 const response = await axios.get(`http://localhost:5000/api/cursos/disponibles`, {
-                    params: { estudiante_id: estudianteId, ciclo_a_matricular: cicloAMatricular, carrera_id: estudianteInfo.carrera_id }
+                    // 🔥 LA CORRECCIÓN CLAVE: Cambiamos los espacios por guiones bajos estrictos 
+                    // para que hagan match perfecto con lo que tu cursoController espera leer en el backend
+                    params: {
+                        estudiante_id: estudianteId, // 👈 Con guión bajo
+                        ciclo_a_matricular: cicloAMatricular, // 👈 Con guión bajo
+                        carrera_id: estudianteInfo.carrera_id // || 1👈 Con guión bajo
+                    }
                 });
 
-
-                // 1. Extraemos el arreglo de cursos de la respuesta del backend
                 const dataCursos = response.data.cursos || [];
                 setCursos(dataCursos);
-
-                // 2. 🔥 CAPTURAMOS LA BANDERA REAL DE LA BASE DE DATOS
                 setAlumnoYaMatriculado(response.data.yaMatriculado || false);
-
-                // 3. Guardamos el contador de deudas académicas para las validaciones
                 setTotalCargosPendientes(response.data.totalCargosPendientes || 0);
 
-                // 4. Marcar por defecto los cursos que son obligatorios (regulares)
                 const seleccionInicial = {};
                 dataCursos.forEach(c => {
                     if (c.obligatorio) seleccionInicial[c.id] = true;
                 });
                 setSelectedCursos(seleccionInicial);
-
 
             } catch (error) {
                 console.error("Error al traer los cursos:", error);
@@ -227,35 +205,92 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
             </div>
 
             {/* PANEL SUPERIOR: Ficha de Datos del Estudiante */}
-            <div className="panel-control" style={{ marginBottom: '25px', width: 'auto' }}>
-                <h2 style={{ fontSize: '14px', fontWeight: 'bold', letterSpacing: '0.5px', marginTop: 0 }}>
-                    DATOS DEL ESTUDIANTE
-                </h2>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px', marginTop: '15px' }}>
-                    <div className="grupo-campo">
-                        <label>ID Estudiante</label>
+            <div style={{ marginBottom: '32px' }}>
+                {/* Título Oficial de la Sección */}
+                <h3 style={{
+                    margin: '0 0 16px 0',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    letterSpacing: '-0.3px',
+                    borderBottom: '2px solid #f1f5f9',
+                    paddingBottom: '8px'
+                }}>
+                    Datos del Estudiante
+                </h3>
+
+                {/* Contenedor Flexbox para distribución Horizontal */}
+                <div style={{
+                    display: 'flex',
+                    gap: '20px',
+                    width: '100%',
+                    alignItems: 'center'
+                }}>
+                    {/* Campo 1: ID / Código */}
+                    <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12.5px', fontWeight: '600', color: '#475569' }}>
+                            ID Estudiante / Código
+                        </label>
                         <input
                             type="text"
                             className="input-deshabilitado"
-                            value={estudianteInfo ? `EST-00${estudianteInfo.id}` : 'Cargando...'}
+                            style={{
+                                height: '38px',
+                                padding: '0 12px',
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                fontSize: '13.5px',
+                                color: '#64748b',
+                                cursor: 'not-allowed'
+                            }}
+                            value={estudianteInfo ? (estudianteInfo.codigo_estudiante || `EST-00${estudianteInfo.estudiante_id}`) : 'Cargando...'}
                             readOnly
                         />
                     </div>
-                    <div className="grupo-campo">
-                        <label>Nombre Completo</label>
+
+                    {/* Campo 2: Nombre Completo */}
+                    <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12.5px', fontWeight: '600', color: '#475569' }}>
+                            Nombre Completo
+                        </label>
                         <input
                             type="text"
                             className="input-deshabilitado"
+                            style={{
+                                height: '38px',
+                                padding: '0 12px',
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                fontSize: '13.5px',
+                                color: '#64748b',
+                                cursor: 'not-allowed'
+                            }}
                             value={estudianteInfo ? `${estudianteInfo.nombres} ${estudianteInfo.apellidos}` : 'Cargando...'}
                             readOnly
                         />
                     </div>
-                    <div className="grupo-campo">
-                        <label>Estatus Académico / Especialidad</label>
+
+                    {/* Campo 3: Estatus / Especialidad */}
+                    <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12.5px', fontWeight: '600', color: '#475569' }}>
+                            Estatus Académico / Especialidad
+                        </label>
                         <input
                             type="text"
                             className="input-deshabilitado"
-                            value={estudianteInfo ? `CICLO ${estudianteInfo.ciclo_actual} - ${estudianteInfo.carrera}` : 'Cargando...'}
+                            style={{
+                                height: '38px',
+                                padding: '0 12px',
+                                backgroundColor: '#f8fafc',
+                                border: '1px solid #cbd5e1',
+                                borderRadius: '6px',
+                                fontSize: '13.5px',
+                                color: '#64748b',
+                                cursor: 'not-allowed'
+                            }}
+                            value={estudianteInfo ? `CICLO ${estudianteInfo.ciclo_actual || 1} - ${estudianteInfo.carrera || 'Educación Inicial'}` : 'Cargando...'}
                             readOnly
                         />
                     </div>
@@ -419,19 +454,19 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
                             {/* BOTÓN GENERAL DE PROCESAMIENTO AL FINAL DE LA COLUMNA */}
                             <button
                                 type="button"
-                                disabled={cargando || violandoReglaDeDeuda || (fueraDeFecha && !alumnoYaMatriculado)}
+                                disabled={cargando || violandoReglaDeDeuda || fueraDeFecha || alumnoYaMatriculado}
                                 className="btn-enviar"
                                 style={{
                                     height: '42px',
                                     fontSize: '14px',
                                     borderRadius: '6px',
                                     marginTop: '5px',
-                                    cursor: (fueraDeFecha && !alumnoYaMatriculado) ? 'not-allowed' : 'pointer',
+                                    cursor: (fueraDeFecha || alumnoYaMatriculado) ? 'not-allowed' : 'pointer',
 
                                     // 🎨 CAMBIO DE COLOR DINÁMICO: 
                                     // Si ya está matriculado, se pinta de color Verde Éxito Institucional.
                                     // Si no se matriculó y ya cerró el proceso, se queda en gris apagado.
-                                    backgroundColor: alumnoYaMatriculado ? '#10b981' : fueraDeFecha ? '#9ca3af' : '#2563eb',
+                                    backgroundColor: (fueraDeFecha || alumnoYaMatriculado) ? '#94a3b8' : '#10b981',
                                     border: 'none',
                                     color: '#ffffff',
                                     fontWeight: 'bold',

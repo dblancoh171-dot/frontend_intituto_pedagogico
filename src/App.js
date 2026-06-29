@@ -6,6 +6,8 @@ import MatriculaForm from './components/MatriculaForm';
 import MisCursosProfesor from './components/MisCursosProfesor'; // 🔥 Agregamos el nuevo archivo
 import GestionarSesiones from './components/GestionarSesiones';
 import ContenidoClase from './components/ContenidoClase';
+import RegistrarAsistencia from './components/RegistrarAsistencia';
+
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
 import './App.css';
@@ -83,6 +85,7 @@ function App() {
         />
       )}
 
+
       {/* COLUMNA DERECHA: Área de Trabajo Fluida */}
       <div className="contenido-principal">
         {rolActivo === 'estudiante' ? (
@@ -129,34 +132,51 @@ function App() {
                 setSubSeccionActiva('sesiones'); // Abre la nueva vista
               }}
             />
-          ): subSeccionActiva === 'sesiones' ? (
-          <GestionarSesiones
-            cursoNombre={cursoParaSesiones?.nombre}
-            codigoCurso={cursoParaSesiones?.codigo}
-            cursoId={cursoParaSesiones?.id}
-            onRegresar={() => setSubSeccionActiva('cursos')}
-            // 🔥 CAPTURAMOS LA SESIÓN ELEGIDA DESDE EL HIJO Y CAMBIAMOS LA VISTA
-            onAbrirContenido={(sesion) => {
-              setSesionParaContenido(sesion);
-              setSubSeccionActiva('contenido-clase');
-            }}
-          />
-        ) : subSeccionActiva === 'contenido-clase' ? (
-          /* 🔥 NUEVA PESTAÑA: Panel de Edición y Materiales */
-          <ContenidoClase
-            sesionNumero={sesionParaContenido?.numero}
-            tituloInicial={sesionParaContenido?.titulo}
-            sesionId={sesionParaContenido?.id}
-            onRegresar={() => setSubSeccionActiva('sesiones')}
-          />
-        ) : (
-          
-          /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
-          <div className="panel-control">
-            <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
-            <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
-          </div>
-        )
+          ) : subSeccionActiva === 'sesiones' ? (
+            <GestionarSesiones
+              cursoNombre={cursoParaSesiones?.nombre}
+              codigoCurso={cursoParaSesiones?.codigo}
+              cursoId={cursoParaSesiones?.id}
+              onRegresar={() => setSubSeccionActiva('cursos')}
+              // 🔥 CAPTURAMOS LA SESIÓN ELEGIDA DESDE EL HIJO Y CAMBIAMOS LA VISTA
+              onAbrirContenido={(sesion) => {
+                setSesionParaContenido(sesion);
+                // Evaluamos el tipo de acción enviado por el botón
+                if (sesion.tipoAccion === 'asistencia') {
+                  setSubSeccionActiva('asistencia'); // 👈 Activa la pestaña dedicada limpia
+                } else {
+                  setSubSeccionActiva('contenido-clase');
+                }
+              }}
+            />
+          ) : subSeccionActiva === 'contenido-clase' ? (
+            /* 🔥 NUEVA PESTAÑA: Panel de Edición y Materiales */
+            <ContenidoClase
+              sesionNumero={sesionParaContenido?.numero}
+              tituloInicial={sesionParaContenido?.titulo}
+              sesionId={sesionParaContenido?.id}
+              onRegresar={() => setSubSeccionActiva('sesiones')}
+            />
+          ) : subSeccionActiva === 'asistencia' ? (
+            <RegistrarAsistencia
+              sesionNumero={sesionParaContenido?.numero || sesionParaContenido?.numero_sesion}
+              cursoNombre={cursoParaSesiones?.nombre}
+
+              // 🔥 LA CORRECCIÓN DEFINITIVA: Jala el ID real del curso activo desde la sesión seleccionada 
+              // o desde el catálogo general. Eliminamos los números fijos (como 17 o 1) para que sea 100% dinámico.
+              cursoId={sesionParaContenido?.curso_id || cursoParaSesiones?.id}
+
+              sesionId={sesionParaContenido?.id}
+              onRegresar={() => setSubSeccionActiva('sesiones')}
+            />
+          ) : (
+
+            /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
+            <div className="panel-control">
+              <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
+              <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
+            </div>
+          )
         )}
       </div>
 

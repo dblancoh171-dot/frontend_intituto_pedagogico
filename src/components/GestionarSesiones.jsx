@@ -7,7 +7,7 @@ const GestionarSesiones = ({ cursoNombre, codigoCurso, cursoId, onRegresar, onAb
     const semestreId = 1; // ID de tu semestre activo
 
     // 📡 1. FUNCIÓN DE CARGA REAL DESDE LA BASE DE DATOS
-   
+
 
     // Recargar al abrir el componente
     useEffect(() => {
@@ -67,56 +67,78 @@ const GestionarSesiones = ({ cursoNombre, codigoCurso, cursoId, onRegresar, onAb
                 </div>
             ) : (
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                {sesiones.map((s, index) => (
-                    <div
-                        key={`sesion-${s.id || index}-${s.numero_sesion}`} 
-                        style={{
-                            backgroundColor: '#ffffff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: '10px',
-                            padding: '20px 24px',
-                            boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '14px'
-                        }}
-                    >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: '#2563eb', fontWeight: 'bold' }}>
-                                {s.numero_sesion}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {sesiones.map((s, index) => (
+                        <div
+                            key={`sesion-${s.id || index}-${s.numero_sesion}`}
+                            style={{
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '10px',
+                                padding: '20px 24px',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.01)',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '14px'
+                            }}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+                                {/* El óvalo azul con el número de sesión (Se mantiene igual) */}
+                                <div style={{ width: '32px', height: '32px', borderRadius: '6px', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: '#2563eb', fontWeight: 'bold' }}>
+                                    {s.numero_sesion}
+                                </div>
+
+                                {/* 🔥 LA CORRECCIÓN CLAVE: Inyectamos el texto de forma estática y formateamos el número a 2 dígitos */}
+                                <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700', color: '#1e293b' }}>
+                                    Sesión {String(s.numero_sesion).padStart(2, '0')}: {s.titulo}
+                                </h3>
+
                             </div>
-                            {/* 🔥 AHORA SE PINTA EL TÍTULO REAL QUE VIENE DE MYSQL */}
-                            <h3 style={{ margin: 0, fontSize: '14.5px', fontWeight: '700', color: '#1e293b' }}>
-                                {s.titulo}
-                            </h3>
+
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <button
+                                    type="button"
+                                    /* 🔥 PASAMOS LOS DATOS REALES DE LA FILA ACTUALIZADA EN LA BD */
+                                    onClick={() => onAbrirContenido({ id: s.id, numero: s.numero_sesion, titulo: s.titulo })}
+                                    style={{
+                                        flex: 1, height: '38px', backgroundColor: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                    }}
+                                >
+                                    📁 Contenido Clase
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() => onAbrirContenido({
+                                        id: s.id,
+                                        numero: s.numero_sesion,
+                                        titulo: s.titulo,
+                                        tipoAccion: 'asistencia' // 👈 Le avisa a App.js que debe mutar de página entera
+                                    })}
+                                    style={{
+                                        flex: 1,
+                                        height: '38px',
+                                        backgroundColor: '#0f172a',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        fontSize: '12.5px',
+                                        fontWeight: '600',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '6px'
+                                    }}
+                                >
+                                    👥 Registrar Asistencia
+                                </button>
+                            </div>
+
                         </div>
-
-                        <div style={{ display: 'flex', gap: '10px' }}>
-                            <button
-                                type="button"
-                                /* 🔥 PASAMOS LOS DATOS REALES DE LA FILA ACTUALIZADA EN LA BD */
-                                onClick={() => onAbrirContenido({ id: s.id, numero: s.numero_sesion, titulo: s.titulo })}
-                                style={{
-                                    flex: 1, height: '38px', backgroundColor: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                                }}
-                            >
-                                📁 Contenido Clase
-                            </button>
-
-                            <button
-                                type="button"
-                                style={{
-                                    flex: 1, height: '38px', backgroundColor: '#0f172a', color: '#ffffff', border: 'none', borderRadius: '6px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                                }}
-                            >
-                                👥 Registrar Asistencia
-                            </button>
-                        </div>
-
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
             )}
 
         </div>
