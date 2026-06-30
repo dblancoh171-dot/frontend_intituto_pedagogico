@@ -5,9 +5,11 @@ import SidebarProfesor from './components/SidebarProfesor';
 import MatriculaForm from './components/MatriculaForm';
 import MisCursosEstudiante from './components/MisCursosEstudiante';
 import MisCursosProfesor from './components/MisCursosProfesor'; // 🔥 Agregamos el nuevo archivo
+import VerSesionesEstudiante from './components/VerSesionesEstudiante';
 import GestionarSesiones from './components/GestionarSesiones';
 import ContenidoClase from './components/ContenidoClase';
 import RegistrarAsistencia from './components/RegistrarAsistencia';
+
 
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
@@ -31,6 +33,8 @@ function App() {
   const [cursoParaSesiones, setCursoParaSesiones] = useState(null);
 
   const [sesionParaContenido, setSesionParaContenido] = useState(null);
+
+  const [cursoSeleccionadoEstudiante, setCursoSeleccionadoEstudiante] = useState(null);
 
   // 🔄 REGLA DE RESET: Cada vez que cambies a mano el ID de pruebas, 
   // el sistema regresará la vista activa de forma obligatoria a 'perfil'
@@ -105,85 +109,105 @@ function App() {
             /* 📘 Pestaña 02: 🔥 NUEVA VISTA DE MIS CURSOS MATRICULADOS DEL ALUMNO */
             <MisCursosEstudiante
               estudianteId={estudianteIdId}
-              semestreId={1} // Sincronizado con tu periodo lectivo activo
+              semestreId={1}
+              // 🔥 CAPTURAMOS EL CURSO SELECCIONADO Y MUTAMOS LA SUBSECCIÓN
+              onAbrirCurso={(curso) => {
+                setCursoSeleccionadoEstudiante(curso);
+                setSubSeccionActiva('sesiones-estudiante');
+              }}
             />
-          ) : (
-            /* 📘 Formulario de Matrícula Blindado contra Nulos */
-            /* 🔥 EL TRUCO KEY: Al cambiar estudianteIdId, destruye los estados viejos y se resetea */
-            <MatriculaForm
-              key={`matr-${estudianteIdId}`}
-              estudianteIdFijo={estudianteIdId}
-              onNombreCargado={setNombreParaSidebar}
+          ) : subSeccionActiva === 'sesiones-estudiante' ? (
+            /* 📋 NUEVA VISTA: Cronograma de clases de este curso específico para el alumno */
+            <VerSesionesEstudiante
+              cursoId={cursoSeleccionadoEstudiante?.curso_id}
+              cursoNombre={cursoSeleccionadoEstudiante?.curso_nombre}
+              codigoCurso={cursoSeleccionadoEstudiante?.codigo_curso}
+              estudianteId={estudianteIdId}
+              semestreId={1}
+              onRegresar={() => setSubSeccionActiva('cursos')}
             />
-          )
+          ) : subSeccionActiva === 'calificaciones' ? (
+            <div className="panel-control">
+              <h2>REPORTE CONSOLIDADO DE CALIFICACIONES</h2>
+            </div>
+          
+        ) : (
+          /* 📘 Formulario de Matrícula Blindado contra Nulos */
+          /* 🔥 EL TRUCO KEY: Al cambiar estudianteIdId, destruye los estados viejos y se resetea */
+          <MatriculaForm
+            key={`matr-${estudianteIdId}`}
+            estudianteIdFijo={estudianteIdId}
+            onNombreCargado={setNombreParaSidebar}
+          />
+        )
         ) : (
           // <RegistroNotasForm />
 
           /* 👨‍🏫 SECCIÓN DEL PROFESOR DINÁMICA CON 3 PESTAÑAS */
-          subSeccionActiva === 'perfil' ? (
-            <div className="panel-control" key={`perf-prof-${profesorIdId}`}>
-              <h2>PERFIL PROFESIONAL DEL DOCENTE</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>Bienvenido al módulo de gestión pedagógica superior. Aquí se desglosan tus datos institucionales de cátedra.</p>
-              <div style={{ marginTop: '20px', fontSize: '15px', fontWeight: 'bold', color: '#16a34a' }}>
-                👨‍🏫 Sesión Activa: {nombreParaSidebar} (ID de Profesor: {profesorIdId})
-              </div>
-            </div>
-          ) : subSeccionActiva === 'cursos' ? (
-            /* 🔥 PESTAÑA CONECTADA: Si pulsa "Mis Cursos" se renderiza la lista ejecutiva horizontal */
-            <MisCursosProfesor
-              profesorIdId={profesorIdId}
-              onCambiarVista={setSubSeccionActiva}
-              // 🔥 Pasamos una función para capturar los datos del curso clickeado
-              onAbrirSesiones={(curso) => {
-                setCursoParaSesiones(curso);
-                setSubSeccionActiva('sesiones'); // Abre la nueva vista
-              }}
-            />
-          ) : subSeccionActiva === 'sesiones' ? (
-            <GestionarSesiones
-              cursoNombre={cursoParaSesiones?.nombre}
-              codigoCurso={cursoParaSesiones?.codigo}
-              cursoId={cursoParaSesiones?.id}
-              onRegresar={() => setSubSeccionActiva('cursos')}
-              // 🔥 CAPTURAMOS LA SESIÓN ELEGIDA DESDE EL HIJO Y CAMBIAMOS LA VISTA
-              onAbrirContenido={(sesion) => {
-                setSesionParaContenido(sesion);
-                // Evaluamos el tipo de acción enviado por el botón
-                if (sesion.tipoAccion === 'asistencia') {
-                  setSubSeccionActiva('asistencia'); // 👈 Activa la pestaña dedicada limpia
-                } else {
-                  setSubSeccionActiva('contenido-clase');
-                }
-              }}
-            />
-          ) : subSeccionActiva === 'contenido-clase' ? (
-            /* 🔥 NUEVA PESTAÑA: Panel de Edición y Materiales */
-            <ContenidoClase
-              sesionNumero={sesionParaContenido?.numero}
-              tituloInicial={sesionParaContenido?.titulo}
-              sesionId={sesionParaContenido?.id}
-              onRegresar={() => setSubSeccionActiva('sesiones')}
-            />
-          ) : subSeccionActiva === 'asistencia' ? (
-            <RegistrarAsistencia
-              sesionNumero={sesionParaContenido?.numero || sesionParaContenido?.numero_sesion}
-              cursoNombre={cursoParaSesiones?.nombre}
+        subSeccionActiva === 'perfil' ? (
+        <div className="panel-control" key={`perf-prof-${profesorIdId}`}>
+          <h2>PERFIL PROFESIONAL DEL DOCENTE</h2>
+          <p style={{ marginTop: '15px', color: '#475569' }}>Bienvenido al módulo de gestión pedagógica superior. Aquí se desglosan tus datos institucionales de cátedra.</p>
+          <div style={{ marginTop: '20px', fontSize: '15px', fontWeight: 'bold', color: '#16a34a' }}>
+            👨‍🏫 Sesión Activa: {nombreParaSidebar} (ID de Profesor: {profesorIdId})
+          </div>
+        </div>
+        ) : subSeccionActiva === 'cursos' ? (
+        /* 🔥 PESTAÑA CONECTADA: Si pulsa "Mis Cursos" se renderiza la lista ejecutiva horizontal */
+        <MisCursosProfesor
+          profesorIdId={profesorIdId}
+          onCambiarVista={setSubSeccionActiva}
+          // 🔥 Pasamos una función para capturar los datos del curso clickeado
+          onAbrirSesiones={(curso) => {
+            setCursoParaSesiones(curso);
+            setSubSeccionActiva('sesiones'); // Abre la nueva vista
+          }}
+        />
+        ) : subSeccionActiva === 'sesiones' ? (
+        <GestionarSesiones
+          cursoNombre={cursoParaSesiones?.nombre}
+          codigoCurso={cursoParaSesiones?.codigo}
+          cursoId={cursoParaSesiones?.id}
+          onRegresar={() => setSubSeccionActiva('cursos')}
+          // 🔥 CAPTURAMOS LA SESIÓN ELEGIDA DESDE EL HIJO Y CAMBIAMOS LA VISTA
+          onAbrirContenido={(sesion) => {
+            setSesionParaContenido(sesion);
+            // Evaluamos el tipo de acción enviado por el botón
+            if (sesion.tipoAccion === 'asistencia') {
+              setSubSeccionActiva('asistencia'); // 👈 Activa la pestaña dedicada limpia
+            } else {
+              setSubSeccionActiva('contenido-clase');
+            }
+          }}
+        />
+        ) : subSeccionActiva === 'contenido-clase' ? (
+        /* 🔥 NUEVA PESTAÑA: Panel de Edición y Materiales */
+        <ContenidoClase
+          sesionNumero={sesionParaContenido?.numero}
+          tituloInicial={sesionParaContenido?.titulo}
+          sesionId={sesionParaContenido?.id}
+          onRegresar={() => setSubSeccionActiva('sesiones')}
+        />
+        ) : subSeccionActiva === 'asistencia' ? (
+        <RegistrarAsistencia
+          sesionNumero={sesionParaContenido?.numero || sesionParaContenido?.numero_sesion}
+          cursoNombre={cursoParaSesiones?.nombre}
 
-              // 🔥 LA CORRECCIÓN DEFINITIVA: Jala el ID real del curso activo desde la sesión seleccionada 
-              // o desde el catálogo general. Eliminamos los números fijos (como 17 o 1) para que sea 100% dinámico.
-              cursoId={sesionParaContenido?.curso_id || cursoParaSesiones?.id}
+          // 🔥 LA CORRECCIÓN DEFINITIVA: Jala el ID real del curso activo desde la sesión seleccionada 
+          // o desde el catálogo general. Eliminamos los números fijos (como 17 o 1) para que sea 100% dinámico.
+          cursoId={sesionParaContenido?.curso_id || cursoParaSesiones?.id}
 
-              sesionId={sesionParaContenido?.id}
-              onRegresar={() => setSubSeccionActiva('sesiones')}
-            />
-          ) : (
+          sesionId={sesionParaContenido?.id}
+          onRegresar={() => setSubSeccionActiva('sesiones')}
+        />
+        ) : (
 
-            /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
-            <div className="panel-control">
-              <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
-            </div>
-          )
+        /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
+        <div className="panel-control">
+          <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
+          <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
+        </div>
+        )
         )}
       </div>
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const MisCursosEstudiante = ({ estudianteId, semestreId }) => {
+const MisCursosEstudiante = ({ estudianteId, semestreId, onAbrirCurso }) => {
     const [misCursos, setMisCursos] = useState([]);
     const [cargando, setCargando] = useState(true);
 
@@ -43,17 +43,33 @@ const MisCursosEstudiante = ({ estudianteId, semestreId }) => {
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                     {misCursos.map((c) => (
-                        <div 
-                            key={c.curso_id} 
-                            style={{ 
-                                backgroundColor: '#ffffff', 
-                                border: '1px solid #e2e8f0', 
-                                borderRadius: '10px', 
+                        <div
+                            key={c.curso_id}
+                            // 🔥 EVENTO CLICK: Al tocar cualquier parte de la tarjeta, abre sus sesiones
+                            onClick={() => onAbrirCurso(c)}
+                            style={{
+                                backgroundColor: '#ffffff',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '10px',
                                 padding: '20px',
                                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '12px'
+                                gap: '12px',
+                                cursor: 'pointer', // Icono de manito interactiva
+                                // ✨ HOVER Y CONTROL DE TRANSICIÓN EN LÍNEA
+                                transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out'
+                            }}
+                            // 🎨 EFECTO HOVER SUTIL: Eleva la tarjeta 3 píxeles y difumina una sombra suave grisácea
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-3px)';
+                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03)';
+                                e.currentTarget.style.borderColor = '#cbd5e1';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'none';
+                                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+                                e.currentTarget.style.borderColor = '#e2e8f0';
                             }}
                         >
                             <div>
