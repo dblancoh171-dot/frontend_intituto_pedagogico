@@ -68,6 +68,7 @@ const GestionarSesiones = ({ cursoNombre, codigoCurso, cursoId, onRegresar, onAb
             ) : (
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
                     {sesiones.map((s, index) => (
                         <div
                             key={`sesion-${s.id || index}-${s.numero_sesion}`}
@@ -96,32 +97,23 @@ const GestionarSesiones = ({ cursoNombre, codigoCurso, cursoId, onRegresar, onAb
 
                             </div>
 
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'flex-end',
+                                gap: '16px',
+                                marginTop: '4px'
+                            }}>
                                 <button
                                     type="button"
                                     /* 🔥 PASAMOS LOS DATOS REALES DE LA FILA ACTUALIZADA EN LA BD */
                                     onClick={() => onAbrirContenido({ id: s.id, numero: s.numero_sesion, titulo: s.titulo })}
                                     style={{
-                                        flex: 1, height: '38px', backgroundColor: '#f8fafc', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '12.5px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                                    }}
-                                >
-                                    📁 Contenido Clase
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={() => onAbrirContenido({
-                                        id: s.id,
-                                        numero: s.numero_sesion,
-                                        titulo: s.titulo,
-                                        tipoAccion: 'asistencia' // 👈 Le avisa a App.js que debe mutar de página entera
-                                    })}
-                                    style={{
-                                        flex: 1,
+                                        flex: '1',
                                         height: '38px',
-                                        backgroundColor: '#0f172a',
-                                        color: '#ffffff',
-                                        border: 'none',
+                                        backgroundColor: '#f8fafc',
+                                        color: '#334155',
+                                        border: '1px solid #cbd5e1',
                                         borderRadius: '6px',
                                         fontSize: '12.5px',
                                         fontWeight: '600',
@@ -132,8 +124,72 @@ const GestionarSesiones = ({ cursoNombre, codigoCurso, cursoId, onRegresar, onAb
                                         gap: '6px'
                                     }}
                                 >
-                                    👥 Registrar Asistencia
+                                    📁 Contenido Clase
                                 </button>
+
+                                <div style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'flex-end',
+                                    gap: '6px'
+                                }}>
+                                    {/* 🏷️ EL NUEVO AVISO DINÁMICO DE ASISTENCIA */}
+                                    <div style={{
+                                        fontSize: '11px',
+                                        fontWeight: '700',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        // 🎨 TEXTO Y FONDO ADAPTATIVO: Verde suave si está realizado, ámbar si está pendiente
+                                        backgroundColor: s.estado_asistencia === 'realizado' ? '#dcfce7' : '#fef3c7',
+                                        color: s.estado_asistencia === 'realizado' ? '#16a34a' : '#d97706',
+                                        transition: 'all 0.2s ease'
+                                    }}>
+                                        {s.estado_asistencia === 'realizado' ? (
+                                            <>
+                                                <span>✔ Realizado</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>⏳ Pendiente</span>
+                                            </>
+                                        )}
+                                    </div>
+
+
+
+                                    <button
+                                        type="button"
+                                        onClick={() => onAbrirContenido({
+                                            id: s.id,
+                                            numero: s.numero_sesion,
+                                            titulo: s.titulo,
+                                            tipoAccion: 'asistencia' // 👈 Le avisa a App.js que debe mutar de página entera
+                                        })}
+                                        style={{
+                                            alignSelf: 'stretch',
+                                            height: '38px',
+                                            backgroundColor: '#0f172a',
+                                            color: '#ffffff',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '12.5px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            gap: '6px'
+                                        }}
+                                    >
+                                        👥 Registrar Asistencia
+                                    </button>
+                                </div>
                             </div>
 
                         </div>
