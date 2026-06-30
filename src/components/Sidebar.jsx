@@ -3,7 +3,7 @@ import React from 'react';
 const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, onCambiarVista }) => {
     return (
         <div className={`sidebar ${isColapsado ? 'colapsado' : ''}`}>
-            
+
             <div>
                 <div className="sidebar-header">
                     <button type="button" className="btn-hamburguesa" onClick={onToggleColapso}>
@@ -18,24 +18,30 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                 {/* Listado de Opciones del Alumno Interactivas */}
                 <div className="sidebar-menu">
                     <div className="sidebar-item">📊 <span>Dashboard</span></div>
-                    
+
                     {/* 🔥 PESTAÑA PERFIL: Ilumina si vistaActiva es 'perfil' */}
-                    <div 
+                    <div
                         className={`sidebar-item ${vistaActiva === 'perfil' ? 'activo' : ''}`}
                         onClick={() => onCambiarVista('perfil')}
                     >
                         👤 <span>Mi Perfil</span>
                     </div>
-                    
+
                     {/* 🔥 PESTAÑA MATRÍCULA: Ilumina si vistaActiva es 'matricula' */}
-                    <div 
+                    <div
                         className={`sidebar-item ${vistaActiva === 'matricula' ? 'activo' : ''}`}
                         onClick={() => onCambiarVista('matricula')}
                     >
                         📘 <span>Proceso Matrícula</span>
                     </div>
-                    
-                    <div className="sidebar-item">📝 <span>Mis Cursos</span></div>
+
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'cursos' ? 'activo' : ''}`}
+                        onClick={() => onCambiarVista('cursos')}
+                        style={{ cursor: 'pointer' }} // Hace que aparezca la mano al pasar el mouse
+                    >
+                        📝 <span>Mis Cursos</span>
+                    </div>
                     <div className="sidebar-item">⏳ <span>Historial Académico</span></div>
                     <div className="sidebar-item">💳 <span>Mis Pagos</span></div>
                     <div className="sidebar-item">⚙️ <span>Configuración</span></div>

@@ -3,6 +3,7 @@ import axios from 'axios';
 import Sidebar from './components/Sidebar';
 import SidebarProfesor from './components/SidebarProfesor';
 import MatriculaForm from './components/MatriculaForm';
+import MisCursosEstudiante from './components/MisCursosEstudiante';
 import MisCursosProfesor from './components/MisCursosProfesor'; // 🔥 Agregamos el nuevo archivo
 import GestionarSesiones from './components/GestionarSesiones';
 import ContenidoClase from './components/ContenidoClase';
@@ -17,7 +18,7 @@ function App() {
   // Cambia este ID (ej: 1, 4 o 5) para probar cómo reacciona cada alumno independiente
   // 🧪 SIMULADOR DE SESIÓN COMPLETO (Elegir un Rol y un ID para probar)
 
-  const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
+  const [rolActivo, setRolActivo] = useState('estudiante'); // 👈 'estudiante' o 'profesor'
 
   const [estudianteIdId, setEstudianteIdId] = useState(1);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
@@ -100,6 +101,12 @@ function App() {
                 Documento / Código detectado en sesión: {nombreParaSidebar} (ID: {estudianteIdId})
               </div>
             </div>
+          ) : subSeccionActiva === 'cursos' ? (
+            /* 📘 Pestaña 02: 🔥 NUEVA VISTA DE MIS CURSOS MATRICULADOS DEL ALUMNO */
+            <MisCursosEstudiante
+              estudianteId={estudianteIdId}
+              semestreId={1} // Sincronizado con tu periodo lectivo activo
+            />
           ) : (
             /* 📘 Formulario de Matrícula Blindado contra Nulos */
             /* 🔥 EL TRUCO KEY: Al cambiar estudianteIdId, destruye los estados viejos y se resetea */
