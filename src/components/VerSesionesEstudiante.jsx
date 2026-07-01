@@ -7,6 +7,9 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
     const [cargando, setCargando] = useState(true);
     const [sesionDesplegada, setSesionDesplegada] = useState(null);
 
+    const [dragActivoActividad, setDragActivoActividad] = useState({});
+    const [archivosCargadosActividad, setArchivosCargadosActividad] = useState({});
+
     useEffect(() => {
         const cargarCronogramaDetallado = async () => {
             // 🔥 CORRECCIÓN CLAVE: Evaluamos las variables legítimas de la cabecera
@@ -186,133 +189,230 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
                                     </div>
 
 
-                                    {/* 📝 SECCIÓN 2: TRABAJOS PENDIENTES EN CASCADA REAL */}
+                                    {/* 📝 SECCIÓN 2: TRABAJOS PENDIENTES EN CASCADA REAL - CON SELECCIÓN Y ARRASTRE ACTIVO */}
                                     <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '16px' }}>
-                                        <h4 style={{
-                                            margin: '0 0 14px 0',
-                                            fontSize: '12px',
-                                            fontWeight: '800',
-                                            color: '#334155',
-                                            textTransform: 'uppercase',
-                                            letterSpacing: '0.3px'
-                                        }}>
+                                        <h4 style={{ margin: '0 0 14px 0', fontSize: '12px', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
                                             2. Trabajos Pendientes / Evaluaciones
                                         </h4>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                             {s.actividades && s.actividades.length > 0 ? (
-                                                s.actividades.map((act, idx) => (
-                                                    <div
-                                                        key={act.id || idx}
-                                                        style={{
-                                                            padding: '20px 22px',
-                                                            border: '1px solid #cbd5e1',
-                                                            borderRadius: '8px',
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                            backgroundColor: '#ffffff',
-                                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)'
-                                                        }}
-                                                    >
-                                                        {/* Lado Izquierdo: Ficha del Trabajo */}
-                                                        <div style={{ flex: 1, paddingRight: '20px' }}>
-                                                            <strong style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'block' }}>
-                                                                {act.titulo}
-                                                            </strong>
-                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 8px 0' }}>
-                                                                <span style={{
-                                                                    fontSize: '10.5px',
-                                                                    fontWeight: '800',
-                                                                    backgroundColor: act.estado === 'COMPLETO' ? '#dcfce7' : '#fef3c7',
-                                                                    color: act.estado === 'COMPLETO' ? '#16a34a' : '#d97706',
-                                                                    padding: '2px 6px',
-                                                                    borderRadius: '4px'
-                                                                }}>
-                                                                    {act.estado}
-                                                                </span>
-                                                                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-                                                                    | Límite: {act.fecha}
-                                                                </span>
-                                                            </div>
-                                                            <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: '1.4', maxWidth: '480px' }}>
-                                                                <strong>Descripción:</strong> {act.desc || 'Desarrollar según pautas del profesor.'}
-                                                            </p>
+                                                s.actividades.map((act, idx) => {
+                                                    const esDragActivo = !!dragActivoActividad[act.id];
+                                                    const archivoAsignado = archivosCargadosActividad[act.id];
 
-                                                            {act.archivo_guia ? (
-                                                                <div style={{ marginTop: '10px' }}>
-                                                                    <a
-                                                                        // Apuntamos a la carpeta física de subidas de Express + el nombre del archivo (Ej: 1782675356614.pdf)
-                                                                         href={`http://localhost:5000${act.archivo_guia}`}
-                                                                        download
-                                                                        target="_blank"
-                                                                        rel="noreferrer"
-                                                                        style={{
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '6px',
-                                                                            fontSize: '11.5px',
-                                                                            fontWeight: '700',
-                                                                            color: '#2563eb',
-                                                                            backgroundColor: '#eff6ff',
-                                                                            padding: '5px 12px',
-                                                                            borderRadius: '4px',
-                                                                            textDecoration: 'none',
-                                                                            border: '1px solid #dbeafe',
-                                                                            transition: 'all 0.15s ease'
+                                                    // 📁 MANEJADOR DE ARCHIVOS SELECCIONADOS
+                                                    const procesarArchivoHijo = (file) => {
+                                                        if (!file) return;
+
+                                                        // 1. 🛡️ FILTRO DE FORMATOS INSTITUCIONALES:
+                                                        // Extraemos la extensión del archivo arrastrado o seleccionado y la pasamos a minúsculas
+                                                        const nombreArchivo = file.name;
+                                                        const extension = nombreArchivo.substring(nombreArchivo.lastIndexOf('.')).toLowerCase();
+
+                                                        // Definimos qué extensiones son las únicas autorizadas por el instituto
+                                                        const extensionesPermitidas = ['.pdf', '.zip'];
+
+                                                        // Si la extensión del archivo arrastrado no está en la lista de oro, bloqueamos el proceso
+                                                        if (!extensionesPermitidas.includes(extension)) {
+                                                            alert(`❌ Formato Rechazado: El archivo "${nombreArchivo}" no está permitido. Para esta actividad solo se aceptan documentos en formato PDF o carpetas comprimidas ZIP.`);
+                                                            return; // Frenamos la inserción en memoria de inmediato
+                                                        }
+
+                                                        // 2. FILTRO DE PESO MÁXIMO
+                                                        if (file.size > 15 * 1024 * 1024) {
+                                                            alert("⚠️ El archivo supera el límite máximo permitido de 15MB.");
+                                                            return;
+                                                        }
+
+                                                        // Si pasa ambas aduanas con éxito, se guarda legítimamente en el estado de React
+                                                        setArchivosCargadosActividad(prev => ({ ...prev, [act.id]: file }));
+                                                    };
+
+                                                    return (
+                                                        <div
+                                                            key={act.id || idx}
+                                                            style={{
+                                                                padding: '20px 22px',
+                                                                border: '1px solid #cbd5e1',
+                                                                borderRadius: '8px',
+                                                                display: 'flex',
+                                                                justifyContent: 'space-between',
+                                                                alignItems: 'center',
+                                                                backgroundColor: '#ffffff',
+                                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)'
+                                                            }}
+                                                        >
+                                                            {/* Lado Izquierdo: Ficha de la Tarea */}
+                                                            <div style={{ flex: 1, paddingRight: '20px' }}>
+                                                                <strong style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'block' }}>
+                                                                    {act.titulo}
+                                                                </strong>
+                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 8px 0' }}>
+                                                                    <span style={{
+                                                                        fontSize: '10.5px', fontWeight: '800',
+                                                                        backgroundColor: archivoAsignado ? '#dcfce7' : '#fef3c7',
+                                                                        color: archivoAsignado ? '#16a34a' : '#d97706',
+                                                                        padding: '2px 6px', borderRadius: '4px'
+                                                                    }}>
+                                                                        {archivoAsignado ? 'LISTO PARA ENVIAR' : act.estado}
+                                                                    </span>
+                                                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+                                                                        | Límite: {act.fecha}
+                                                                    </span>
+                                                                </div>
+                                                                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: '1.4', maxWidth: '480px' }}>
+                                                                    <strong>Descripción:</strong> {act.desc || 'Desarrollar según pautas del profesor.'}
+                                                                </p>
+
+                                                                {/* Enlace Condicional de tu Archivo Guía */}
+                                                                {act.archivo_guia && (
+                                                                    <div style={{ marginTop: '10px' }}>
+                                                                        <a
+                                                                            href={`http://localhost:5000${act.archivo_guia}`}
+                                                                            target="_blank" rel="noopener noreferrer"
+                                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: '#2563eb', backgroundColor: '#eff6ff', padding: '5px 12px', borderRadius: '4px', textDecoration: 'none', border: '1px solid #dbeafe' }}
+                                                                        >
+                                                                            <span>📄 Abrir y Guardar Archivo Guía / Pauta</span>
+                                                                        </a>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+
+                                                            {/* Lado Derecho: Zona de Carga Interactiva + Botón Visual */}
+                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', flexShrink: 0 }}>
+
+                                                                {/* 🎚️ CUADRO DRAG & DROP INTERACTIVO */}
+                                                                <div
+                                                                    onDragOver={(e) => {
+                                                                        e.preventDefault();
+                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: true }));
+                                                                    }}
+                                                                    onDragLeave={(e) => {
+                                                                        e.preventDefault();
+                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
+                                                                    }}
+                                                                    onDrop={(e) => {
+                                                                        e.preventDefault();
+                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
+                                                                        if (e.dataTransfer.files && e.dataTransfer.files) {
+                                                                            procesarArchivoHijo(e.dataTransfer.files);
+                                                                        }
+                                                                    }}
+                                                                    style={{
+                                                                        border: esDragActivo ? '1px dashed #2563eb' : '1px solid #cbd5e1',
+                                                                        borderRadius: '6px',
+                                                                        padding: '12px 18px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: '12px',
+                                                                        backgroundColor: esDragActivo ? '#f0f9ff' : '#f8fafc',
+                                                                        transition: 'all 0.2s ease-in-out'
+                                                                    }}
+                                                                >
+                                                                    {/* Input oculto para activar la exploración con clics */}
+                                                                    <input
+                                                                        type="file"
+                                                                        id={`file-input-${act.id}`}
+                                                                        style={{ display: 'none' }}
+                                                                        // 🔥 EXTENSIONES DINÁMICAS: El input acepta exactamente el tipo de documento dictado por el profesor
+                                                                        accept={act.tipo_documento === 'docx' ? '.docx,.doc' : '.pdf'}
+                                                                        onChange={(e) => {
+                                                                            if (e.target.files && e.target.files) {
+                                                                                procesarArchivoHijo(e.target.files);
+                                                                            }
                                                                         }}
-                                                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#dbeafe'}
-                                                                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#eff6ff'}
-                                                                    >
-                                                                        <span>📄 Descargar Archivo Guía / Pauta ({act.archivo_guia.split('/').pop()})</span>
-                                                                    </a>
-                                                                </div>
-                                                            ) : (
-                                                                <div style={{ marginTop: '8px', fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
-                                                                    📌 Sin archivo guía adjunto para esta evaluación.
-                                                                </div>
-                                                            )}
+                                                                    />
 
-                                                        </div>
+                                                                    {/* 🎨 ICONO DE TIPO DE DOCUMENTO REAL PROVENIENTE DE MYSQL */}
+                                                                    <div style={{
+                                                                        width: '38px',
+                                                                        height: '42px',
+                                                                        borderRadius: '4px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        fontSize: '10px',
+                                                                        fontWeight: '900',
+                                                                        textTransform: 'uppercase',
+                                                                        flexShrink: 0,
+                                                                        // 🚀 COLORES DE ALTA FIDELIDAD: Rojo si es PDF, azul brillante si es Word / DOCX
+                                                                        backgroundColor: String(act.tipo_documento).toLowerCase() === 'docx' ? '#eff6ff' : '#fee2e2',
+                                                                        color: String(act.tipo_documento).toLowerCase() === 'docx' ? '#2563eb' : '#ef4444',
+                                                                        border: String(act.tipo_documento).toLowerCase() === 'docx' ? '1px solid #bfdbfe' : '1px solid #fca5a5'
+                                                                    }}>
+                                                                        {act.tipo_documento || 'PDF'}
+                                                                    </div>
 
-                                                        {/* Lado Derecho: Zona de Carga + Botón de Envío Visual */}
-                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', flexShrink: 0 }}>
-                                                            <div style={{ border: '1px dashed #cbd5e1', borderRadius: '6px', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: '#f8fafc' }}>
-                                                                <button type="button" style={{ height: '32px', padding: '0 14px', backgroundColor: '#16a34a', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer' }}>
-                                                                    SUBIR ARCHIVO
+                                                                    {/* Contenedor de Botones de Acción */}
+                                                                    <div style={{ display: 'flex', gap: '6px' }}>
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => document.getElementById(`file-input-${act.id}`).click()}
+                                                                            style={{
+                                                                                height: '32px',
+                                                                                padding: '0 14px',
+                                                                                backgroundColor: archivoAsignado ? '#475569' : '#16a34a',
+                                                                                color: '#ffffff',
+                                                                                border: 'none',
+                                                                                borderRadius: '4px',
+                                                                                fontSize: '11.5px',
+                                                                                fontWeight: '700',
+                                                                                cursor: 'pointer',
+                                                                                transition: 'background-color 0.15s'
+                                                                            }}
+                                                                        >
+                                                                            {archivoAsignado ? '🔄 Cambiar' : 'SUBIR ARCHIVO'}
+                                                                        </button>
+
+                                                                        {archivoAsignado && (
+                                                                            <button
+                                                                                type="button"
+                                                                                title="Retirar documento"
+                                                                                onClick={() => {
+                                                                                    setArchivosCargadosActividad(prev => {
+                                                                                        const copiaEstados = { ...prev };
+                                                                                        delete copiaEstados[act.id];
+                                                                                        return copiaEstados;
+                                                                                    });
+                                                                                }}
+                                                                                style={{ height: '32px', width: '32px', backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', transition: 'all 0.15s' }}
+                                                                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ef4444'; e.currentTarget.style.color = '#ffffff'; }}
+                                                                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
+                                                                            >
+                                                                                🗑️
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+
+                                                                    <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: '500', width: '160px', lineHeight: '1.3' }}>
+                                                                        {archivoAsignado ? (
+                                                                            <strong style={{ color: '#16a34a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                                📎 {archivoAsignado.name}
+                                                                            </strong>
+                                                                        ) : (
+                                                                            `Drag & drop or Click to upload ${String(act.tipo_documento).toUpperCase()}, max 15MB`
+                                                                        )}
+                                                                    </span>
+                                                                </div>
+
+                                                                {/* 🚀 BOTÓN CONFIRMAR: Se mantiene únicamente visual y deshabilitado por el momento */}
+                                                                <button
+                                                                    type="button"
+                                                                    disabled
+                                                                    style={{
+                                                                        height: '34px', padding: '0 20px',
+                                                                        backgroundColor: archivoAsignado ? '#0284c7' : '#94a3b8',
+                                                                        color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: '700',
+                                                                        cursor: 'not-allowed', opacity: archivoAsignado ? 1 : 0.6, boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
+                                                                    }}
+                                                                >
+                                                                    <span>🚀 Confirmar y Enviar Actividad</span>
                                                                 </button>
-                                                                <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: '500', width: '150px', lineHeight: '1.3' }}>
-                                                                    Formatos: {act.tipo_documento || 'PDF/ZIP'}, max 15MB
-                                                                </span>
                                                             </div>
 
-                                                            <button
-                                                                type="button"
-                                                                style={{
-                                                                    height: '34px',
-                                                                    padding: '0 20px',
-                                                                    backgroundColor: '#0284c7',
-                                                                    color: '#ffffff',
-                                                                    border: 'none',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '12px',
-                                                                    fontWeight: '700',
-                                                                    cursor: 'pointer',
-                                                                    boxShadow: '0 2px 4px rgba(2, 132, 199, 0.2)',
-                                                                    display: 'flex',
-                                                                    alignItems: 'center',
-                                                                    justifyContent: 'center',
-                                                                    gap: '6px',
-                                                                    transition: 'background-color 0.15s ease'
-                                                                }}
-                                                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0369a1'}
-                                                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0284c7'}
-                                                            >
-                                                                <span>🚀 Confirmar y Enviar Actividad</span>
-                                                            </button>
                                                         </div>
-
-                                                    </div>
-                                                ))
+                                                    );
+                                                })
                                             ) : (
                                                 <p style={{ margin: '10px 0', fontSize: '13px', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
                                                     No se registran tareas pendientes para esta sesión de aprendizaje.
