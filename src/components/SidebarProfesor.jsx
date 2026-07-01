@@ -30,6 +30,15 @@ const SidebarProfesor = ({ profesorNombre, isColapsado, onToggleColapso, vistaAc
                     >
                         📚 <span>Mis Cursos</span>
                     </div>
+                    {/* 📁 PESTAÑA: RECEPCIÓN DE ACTIVIDADES (VISTA DOCENTE) */}
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'recepcion-actividades' ? 'activo' : ''}`}
+                        onClick={() => onCambiarVista('recepcion-actividades')}
+                        style={{ cursor: 'pointer', marginTop: '4px' }}
+                    >
+                        📥 <span>Recepción de Actividades</span>
+                    </div>
+
 
                     <div className="sidebar-item profesor-item">👥 <span>Mis Alumnos</span></div>
                     <div className="sidebar-item profesor-item">🗂️ <span>Actas Consolidadas</span></div>
