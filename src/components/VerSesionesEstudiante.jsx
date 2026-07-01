@@ -294,8 +294,8 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
                                                                     onDrop={(e) => {
                                                                         e.preventDefault();
                                                                         setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
-                                                                        if (e.dataTransfer.files && e.dataTransfer.files) {
-                                                                            procesarArchivoHijo(e.dataTransfer.files);
+                                                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                                            procesarArchivoHijo(e.dataTransfer.files[0]);
                                                                         }
                                                                     }}
                                                                     style={{
@@ -317,8 +317,8 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
                                                                         // 🔥 EXTENSIONES DINÁMICAS: El input acepta exactamente el tipo de documento dictado por el profesor
                                                                         accept={act.tipo_documento === 'docx' ? '.docx,.doc' : '.pdf'}
                                                                         onChange={(e) => {
-                                                                            if (e.target.files && e.target.files) {
-                                                                                procesarArchivoHijo(e.target.files);
+                                                                            if (e.target.files && e.target.files.length > 0) {
+                                                                                procesarArchivoHijo(e.target.files[0]);
                                                                             }
                                                                         }}
                                                                     />
