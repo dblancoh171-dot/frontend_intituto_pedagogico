@@ -4,7 +4,7 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
     return (
         <div className={`sidebar ${isColapsado ? 'colapsado' : ''}`}>
 
-            <div>
+            <div >
                 <div className="sidebar-header">
                     <button type="button" className="btn-hamburguesa" onClick={onToggleColapso}>
                         ☰

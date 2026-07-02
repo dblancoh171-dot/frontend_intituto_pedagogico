@@ -10,6 +10,43 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
     const [dragActivoActividad, setDragActivoActividad] = useState({});
     const [archivosCargadosActividad, setArchivosCargadosActividad] = useState({});
 
+    const [comentariosActividad, setComentariosActividad] = useState({});
+
+    const [subiendoActividad, setSubiendoActividad] = useState({});
+
+    // 🟢 FUNCIÓN EXCLUSIVA DE REFRESCO EXTRÍDA PARA SER REUTILIZABLE
+    const cargarCronogramaDetallado = async () => {
+        if (!cursoId || !estudianteId) return;
+        try {
+            console.log(`-> [AXIOS] Refrescando ventana de datos de forma silenciosa...`);
+            const res = await axios.get('http://localhost:5000/api/cursos/cronograma-estudiante', {
+                params: {
+                    curso_id: Number(cursoId),
+                    semestre_id: Number(semestreId || 1),
+                    estudiante_id: Number(estudianteId)
+                }
+            });
+            setSesiones(res.data || []);
+
+            // Poblamos los comentarios previos de la BD
+            const comentariosIniciales = {};
+            res.data.forEach(sesion => {
+                if (sesion.actividades) {
+                    sesion.actividades.forEach(act => {
+                        if (act.comentario_previo) {
+                            comentariosIniciales[act.id] = act.comentario_previo;
+                        }
+                    });
+                }
+            });
+            setComentariosActividad(comentariosIniciales);
+        } catch (error) {
+            console.error("🚨 Error al recuperar el cronograma:", error);
+        } finally {
+            setCargando(false);
+        }
+    };
+
     useEffect(() => {
         const cargarCronogramaDetallado = async () => {
             // 🔥 CORRECCIÓN CLAVE: Evaluamos las variables legítimas de la cabecera
@@ -30,6 +67,19 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
                     }
                 });
                 setSesiones(res.data || []);
+
+                // 🚀 NUEVO: Mapeamos los comentarios previos de la BD para habilitar la edición instantánea
+                const comentariosIniciales = {};
+                res.data.forEach(sesion => {
+                    if (sesion.actividades) {
+                        sesion.actividades.forEach(act => {
+                            if (act.comentario_previo) {
+                                comentariosIniciales[act.id] = act.comentario_previo;
+                            }
+                        });
+                    }
+                });
+                setComentariosActividad(comentariosIniciales);
             } catch (error) {
                 console.error("🚨 Error al recuperar el cronograma interactivo:", error);
             } finally {
@@ -43,9 +93,9 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
     }
 
     return (
-        <div style={{ padding: '32px', display: 'flex', gap: '24px', backgroundColor: '#f8fafc', minHeight: '100vh' }}>
+        <div style={{ padding: '12px', display: 'flex', gap: '24px', backgroundColor: '#b1b4b8', minHeight: '100vh' }}>
             {/* PANEL IZQUIERDO: Tarjeta de Información Fija del Curso */}
-            <div style={{ width: '280px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', height: 'fit-content', flexShrink: 0, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }}>
+            <div style={{ width: '200px', backgroundColor: '#ffffff', border: '1px solid #cccaca', borderRadius: '12px', padding: '20px', height: 'fit-content', flexShrink: 0, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }}>
                 <button type="button" onClick={onRegresar} style={{ backgroundColor: 'transparent', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: '700', padding: 0, marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     ⬅ Volver a Mis Cursos
                 </button>
@@ -189,237 +239,409 @@ const VerSesionesEstudiante = ({ cursoId, cursoNombre, codigoCurso, estudianteId
                                     </div>
 
 
-                                    {/* 📝 SECCIÓN 2: TRABAJOS PENDIENTES EN CASCADA REAL - CON SELECCIÓN Y ARRASTRE ACTIVO */}
-                                    <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '16px' }}>
-                                        <h4 style={{ margin: '0 0 14px 0', fontSize: '12px', fontWeight: '800', color: '#334155', textTransform: 'uppercase', letterSpacing: '0.3px' }}>
-                                            2. Trabajos Pendientes / Evaluaciones
-                                        </h4>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                                            {s.actividades && s.actividades.length > 0 ? (
-                                                s.actividades.map((act, idx) => {
-                                                    const esDragActivo = !!dragActivoActividad[act.id];
-                                                    const archivoAsignado = archivosCargadosActividad[act.id];
+                                    {/* 📝 SECCIÓN 2: TRABAJOS PENDIENTES CON CONTROL ESTRICTO DE FECHA VENCIDA */}
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                                        {s.actividades && s.actividades.length > 0 ? (
+                                            s.actividades.map((act, idx) => {
+                                                const esDragActivo = !!dragActivoActividad[act.id];
+                                                const archivoAsignado = archivosCargadosActividad[act.id];
 
-                                                    // 📁 MANEJADOR DE ARCHIVOS SELECCIONADOS
-                                                    const procesarArchivoHijo = (file) => {
-                                                        if (!file) return;
+                                                const llaveAtomicaActividad = `act-sesion-${s.sesion_id}-tarea-${act.id || idx}-idx-${idx}`;
 
-                                                        // 1. 🛡️ FILTRO DE FORMATOS INSTITUCIONALES:
-                                                        // Extraemos la extensión del archivo arrastrado o seleccionado y la pasamos a minúsculas
-                                                        const nombreArchivo = file.name;
-                                                        const extension = nombreArchivo.substring(nombreArchivo.lastIndexOf('.')).toLowerCase();
+                                                // ⏳ DETECTOR CRÍTICO DE TIEMPO EXTRAÍDO DESDE MYSQL:
+                                                // Tu Backend envía la fecha formateada en texto (Ej: "30 Jun 2026, 18:00")
+                                                // Creamos un formateador rápido para reconstruir el objeto Date real y compararlo con el reloj actual [01/07/2026]
+                                                const parsearFechaMySQL = (fechaStr) => {
+                                                    if (!fechaStr) return new Date();
+                                                    // Si tu backend ya manda un formato convertible o ISO directo, Date.parse lo lee.
+                                                    // Mapeamos de respaldo convirtiendo los meses en español a números si fuera necesario
+                                                    const meses = { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 };
+                                                    const partes = fechaStr.toLowerCase().replace(/,/g, '').split(' ');
+                                                    if (partes.length >= 4) {
+                                                        const dia = parseInt(partes[0], 10);
+                                                        const mes = meses[partes[1]] || 0;
+                                                        const anio = parseInt(partes[2], 10);
+                                                        const horaPartes = partes[3].split(':');
+                                                        const hora = parseInt(horaPartes[0], 10);
+                                                        const min = parseInt(horaPartes[1], 10);
+                                                        return new Date(anio, mes, dia, hora, min);
+                                                    }
+                                                    return new Date(fechaStr); // Respaldo nativo
+                                                };
 
-                                                        // Definimos qué extensiones son las únicas autorizadas por el instituto
-                                                        const extensionesPermitidas = ['.pdf', '.zip'];
+                                                const fechaLimiteDate = parsearFechaMySQL(act.fecha);
+                                                const fechaActual = new Date(); // Captura la fecha y hora de la computadora en este instante [01/07/2026]
 
-                                                        // Si la extensión del archivo arrastrado no está en la lista de oro, bloqueamos el proceso
-                                                        if (!extensionesPermitidas.includes(extension)) {
-                                                            alert(`❌ Formato Rechazado: El archivo "${nombreArchivo}" no está permitido. Para esta actividad solo se aceptan documentos en formato PDF o carpetas comprimidas ZIP.`);
-                                                            return; // Frenamos la inserción en memoria de inmediato
-                                                        }
+                                                // 🚨 CONDICIÓN DE BLOQUEO: Sabe si el plazo de entrega ya se extinguió en el monitor
+                                                const estaFueraDeTiempo = fechaActual > fechaLimiteDate;
 
-                                                        // 2. FILTRO DE PESO MÁXIMO
-                                                        if (file.size > 15 * 1024 * 1024) {
-                                                            alert("⚠️ El archivo supera el límite máximo permitido de 15MB.");
-                                                            return;
-                                                        }
+                                                // Manejador de Archivos Local
+                                                const procesarArchivoHijo = (file) => {
+                                                    if (!file || estaFueraDeTiempo) return; // Doble seguro ante bloqueos
+                                                    const nombreArchivo = file.name;
+                                                    const extension = nombreArchivo.substring(nombreArchivo.lastIndexOf('.')).toLowerCase();
+                                                    const extensionesPermitidas = ['.pdf', '.zip'];
+                                                    if (act.tipo_documento === 'docx') extensionesPermitidas.push('.docx', '.doc');
 
-                                                        // Si pasa ambas aduanas con éxito, se guarda legítimamente en el estado de React
-                                                        setArchivosCargadosActividad(prev => ({ ...prev, [act.id]: file }));
-                                                    };
+                                                    if (!extensionesPermitidas.includes(extension)) {
+                                                        alert(`❌ Formato Rechazado: Para esta actividad solo se aceptan documentos ${String(act.tipo_documento).toUpperCase()}.`);
+                                                        return;
+                                                    }
+                                                    if (file.size > 15 * 1024 * 1024) {
+                                                        alert("⚠️ El archivo supera el límite máximo permitido de 15MB.");
+                                                        return;
+                                                    }
+                                                    setArchivosCargadosActividad(prev => ({ ...prev, [act.id]: file }));
+                                                };
 
-                                                    return (
-                                                        <div
-                                                            key={act.id || idx}
-                                                            style={{
-                                                                padding: '20px 22px',
-                                                                border: '1px solid #cbd5e1',
-                                                                borderRadius: '8px',
-                                                                display: 'flex',
-                                                                justifyContent: 'space-between',
-                                                                alignItems: 'center',
-                                                                backgroundColor: '#ffffff',
-                                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)'
-                                                            }}
-                                                        >
-                                                            {/* Lado Izquierdo: Ficha de la Tarea */}
-                                                            <div style={{ flex: 1, paddingRight: '20px' }}>
-                                                                <strong style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a', display: 'block' }}>
-                                                                    {act.titulo}
-                                                                </strong>
-                                                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 8px 0' }}>
-                                                                    <span style={{
-                                                                        fontSize: '10.5px', fontWeight: '800',
-                                                                        backgroundColor: archivoAsignado ? '#dcfce7' : '#fef3c7',
-                                                                        color: archivoAsignado ? '#16a34a' : '#d97706',
-                                                                        padding: '2px 6px', borderRadius: '4px'
-                                                                    }}>
-                                                                        {archivoAsignado ? 'LISTO PARA ENVIAR' : act.estado}
-                                                                    </span>
-                                                                    <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
-                                                                        | Límite: {act.fecha}
-                                                                    </span>
+                                                return (
+                                                    <div
+                                                        key={llaveAtomicaActividad}
+                                                        style={{
+                                                            padding: '20px 22px',
+                                                            border: estaFueraDeTiempo ? '1px solid #fca5a5' : '1px solid #cbd5e1', // Borde rojo tenue si expiró
+                                                            borderRadius: '8px',
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                            backgroundColor: estaFueraDeTiempo ? '#fff5f5' : '#ffffff',
+                                                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.01)',
+                                                            opacity: subiendoActividad[act.id] ? 0.55 : 1,
+                                                            pointerEvents: subiendoActividad[act.id] ? 'none' : 'auto',
+                                                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                                                        }}
+                                                    >
+                                                        {/* 📋 EVALUACIÓN DE ESCENARIOS A NIVEL DE INTERFAZ DE USUARIO (UI) */}
+                                                        {estaFueraDeTiempo ? (
+                                                            /* ❌ ESCENARIO 01: EL TIEMPO LÍMITE VENCIÓ (Oculta zona de subida y muestra la alerta) */
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', width: '100%', padding: '4px 0' }}>
+                                                                {/* Icono de advertencia en un círculo carmín */}
+                                                                <div style={{ width: '42px', height: '42px', borderRadius: '50%', backgroundColor: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                                                                    🚫
                                                                 </div>
-                                                                <p style={{ margin: 0, fontSize: '12px', color: '#475569', lineHeight: '1.4', maxWidth: '480px' }}>
-                                                                    <strong>Descripción:</strong> {act.desc || 'Desarrollar según pautas del profesor.'}
-                                                                </p>
-
-                                                                {/* Enlace Condicional de tu Archivo Guía */}
-                                                                {act.archivo_guia && (
-                                                                    <div style={{ marginTop: '10px' }}>
-                                                                        <a
-                                                                            href={`http://localhost:5000${act.archivo_guia}`}
-                                                                            target="_blank" rel="noopener noreferrer"
-                                                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: '#2563eb', backgroundColor: '#eff6ff', padding: '5px 12px', borderRadius: '4px', textDecoration: 'none', border: '1px solid #dbeafe' }}
-                                                                        >
-                                                                            <span>📄 Abrir y Guardar Archivo Guía / Pauta</span>
-                                                                        </a>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                                                        <strong style={{ fontSize: '14.5px', fontWeight: '800', color: '#991b1b' }}>
+                                                                            {act.titulo}
+                                                                        </strong>
+                                                                        <span style={{ fontSize: '10.5px', fontWeight: '900', backgroundColor: '#ef4444', color: '#ffffff', padding: '2px 8px', borderRadius: '4px', letterSpacing: '0.3px' }}>
+                                                                            ENTREGA FUERA DE TIEMPO
+                                                                        </span>
                                                                     </div>
-                                                                )}
+                                                                    <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#7f1d1d', fontWeight: '600' }}>
+                                                                        ⚠️ El plazo límite establecido para el envío de esta actividad finalizó el día <span style={{ textDecoration: 'underline' }}>{act.fecha}</span>. La plataforma ha congelado la recepción de archivos digitales de forma automática.
+                                                                    </p>
+                                                                </div>
                                                             </div>
 
-                                                            {/* Lado Derecho: Zona de Carga Interactiva + Botón Visual */}
-                                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px', flexShrink: 0 }}>
+                                                        ) : (
 
-                                                                {/* 🎚️ CUADRO DRAG & DROP INTERACTIVO */}
-                                                                <div
-                                                                    onDragOver={(e) => {
-                                                                        e.preventDefault();
-                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: true }));
-                                                                    }}
-                                                                    onDragLeave={(e) => {
-                                                                        e.preventDefault();
-                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
-                                                                    }}
-                                                                    onDrop={(e) => {
-                                                                        e.preventDefault();
-                                                                        setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
-                                                                        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                                                                            procesarArchivoHijo(e.dataTransfer.files[0]);
-                                                                        }
-                                                                    }}
-                                                                    style={{
-                                                                        border: esDragActivo ? '1px dashed #2563eb' : '1px solid #cbd5e1',
-                                                                        borderRadius: '6px',
-                                                                        padding: '12px 18px',
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        gap: '12px',
-                                                                        backgroundColor: esDragActivo ? '#f0f9ff' : '#f8fafc',
-                                                                        transition: 'all 0.2s ease-in-out'
-                                                                    }}
-                                                                >
-                                                                    {/* Input oculto para activar la exploración con clics */}
-                                                                    <input
-                                                                        type="file"
-                                                                        id={`file-input-${act.id}`}
-                                                                        style={{ display: 'none' }}
-                                                                        // 🔥 EXTENSIONES DINÁMICAS: El input acepta exactamente el tipo de documento dictado por el profesor
-                                                                        accept={act.tipo_documento === 'docx' ? '.docx,.doc' : '.pdf'}
-                                                                        onChange={(e) => {
-                                                                            if (e.target.files && e.target.files.length > 0) {
-                                                                                procesarArchivoHijo(e.target.files[0]);
+                                                            /* 💎 ESCENARIO 02: TIEMPO VIGENTE (Muestra el contenido regular completo de tu monitor) */
+                                                            <>
+                                                                {/* Lado Izquierdo: Ficha informativa de la Tarea / Actividad */}
+                                                                <div style={{ flex: 1, paddingRight: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '130px' }}>
+                                                                    <div>
+                                                                        {/* 🏷️ EL NUEVO NIVEL SUPERIOR: Enumerador Correlativo de Actividades */}
+                                                                        <span style={{
+                                                                            fontSize: '11px',
+                                                                            fontWeight: '800',
+                                                                            color: '#2563eb', // Azul institucional nítido
+                                                                            textTransform: 'uppercase',
+                                                                            letterSpacing: '0.5px',
+                                                                            display: 'block',
+                                                                            marginBottom: '2px'
+                                                                        }}>
+                                                                            Actividad {idx + 1}:
+                                                                        </span>
+
+                                                                        <strong style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', display: 'block', letterSpacing: '-0.2px' }}>
+                                                                            {act.titulo}
+                                                                        </strong>
+
+                                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '6px 0 8px 0' }}>
+                                                                            <span style={{
+                                                                                fontSize: '10.5px',
+                                                                                fontWeight: '900',
+                                                                                backgroundColor: archivoAsignado ? '#dcfce7' : (act.estado === 'COMPLETO' ? '#e0f2fe' : '#fef3c7'),
+                                                                                color: archivoAsignado ? '#16a34a' : (act.estado === 'COMPLETO' ? '#0369a1' : '#d97706'),
+                                                                                padding: '2px 6px',
+                                                                                borderRadius: '4px',
+                                                                                letterSpacing: '0.2px',
+                                                                                // 👇 REEMPLAZA O AGREGA ESTAS LÍNEAS
+                                                                                display: 'inline-flex',
+                                                                                flexDirection: 'column',
+                                                                                alignItems: 'center',
+                                                                                textAlign: 'center',
+                                                                                width: 'fit-content'
+                                                                            }}>
+                                                                                {archivoAsignado ? 'LISTO PARA REENVIAR' : (act.estado === 'COMPLETO' ? '✔ ENTREGADO (EDITABLE)' : '⏳ PENDIENTE')}
+                                                                            </span>
+                                                                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '500' }}>
+                                                                                | Límite: {act.fecha}
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <p style={{ margin: 0, fontSize: '12.5px', color: '#475569', lineHeight: '1.4', maxWidth: '480px' }}>
+                                                                            <strong>Descripción:</strong> {act.desc || 'Desarrollar según pautas del profesor.'}
+                                                                        </p>
+                                                                    </div>
+
+                                                                    {/* Enlace Condicional Seguro para Descargar el Archivo Guía / Rúbrica */}
+                                                                    {act.archivo_guia && (
+                                                                        <div style={{ marginTop: '12px' }}>
+                                                                            <a
+                                                                                href={`http://localhost:5000${act.archivo_guia}`}
+                                                                                target="_blank" rel="noopener noreferrer"
+                                                                                style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11.5px', fontWeight: '700', color: '#2563eb', backgroundColor: '#eff6ff', padding: '5px 12px', borderRadius: '4px', textDecoration: 'none', border: '1px solid #dbeafe', cursor: 'pointer' }}
+                                                                            >
+                                                                                <span>📄 Abrir y Guardar Archivo Guía / Pauta</span>
+                                                                            </a>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Lado Derecho: Zona de Carga, Entrada de Comentario y Botón de Confirmación Real */}
+                                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px', flexShrink: 0, width: '450px' }}>
+
+                                                                    {/* 🗚 CASILLERO DRAG & DROP INTERACTIVO */}
+                                                                    <div
+                                                                        onDragOver={(e) => { e.preventDefault(); setDragActivoActividad(prev => ({ ...prev, [act.id]: true })); }}
+                                                                        onDragLeave={(e) => { e.preventDefault(); setDragActivoActividad(prev => ({ ...prev, [act.id]: false })); }}
+                                                                        onDrop={(e) => {
+                                                                            e.preventDefault();
+                                                                            setDragActivoActividad(prev => ({ ...prev, [act.id]: false }));
+
+                                                                            // 🔥 CORRECCIÓN 1: Extracción estricta del primer archivo arrastrado
+                                                                            if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                                                                                procesarArchivoHijo(e.dataTransfer.files[0]);
                                                                             }
                                                                         }}
-                                                                    />
-
-                                                                    {/* 🎨 ICONO DE TIPO DE DOCUMENTO REAL PROVENIENTE DE MYSQL */}
-                                                                    <div style={{
-                                                                        width: '38px',
-                                                                        height: '42px',
-                                                                        borderRadius: '4px',
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        justifyContent: 'center',
-                                                                        fontSize: '10px',
-                                                                        fontWeight: '900',
-                                                                        textTransform: 'uppercase',
-                                                                        flexShrink: 0,
-                                                                        // 🚀 COLORES DE ALTA FIDELIDAD: Rojo si es PDF, azul brillante si es Word / DOCX
-                                                                        backgroundColor: String(act.tipo_documento).toLowerCase() === 'docx' ? '#eff6ff' : '#fee2e2',
-                                                                        color: String(act.tipo_documento).toLowerCase() === 'docx' ? '#2563eb' : '#ef4444',
-                                                                        border: String(act.tipo_documento).toLowerCase() === 'docx' ? '1px solid #bfdbfe' : '1px solid #fca5a5'
-                                                                    }}>
-                                                                        {act.tipo_documento || 'PDF'}
-                                                                    </div>
-
-                                                                    {/* Contenedor de Botones de Acción */}
-                                                                    <div style={{ display: 'flex', gap: '6px' }}>
-                                                                        <button
-                                                                            type="button"
-                                                                            onClick={() => document.getElementById(`file-input-${act.id}`).click()}
-                                                                            style={{
-                                                                                height: '32px',
-                                                                                padding: '0 14px',
-                                                                                backgroundColor: archivoAsignado ? '#475569' : '#16a34a',
-                                                                                color: '#ffffff',
-                                                                                border: 'none',
-                                                                                borderRadius: '4px',
-                                                                                fontSize: '11.5px',
-                                                                                fontWeight: '700',
-                                                                                cursor: 'pointer',
-                                                                                transition: 'background-color 0.15s'
+                                                                        style={{ border: esDragActivo ? '1px dashed #2563eb' : '1px solid #cbd5e1', borderRadius: '6px', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '12px', backgroundColor: esDragActivo ? '#f0f9ff' : '#f8fafc', transition: 'all 0.2s ease', width: '100%', boxSizing: 'border-box' }}
+                                                                    >
+                                                                        <input
+                                                                            type="file"
+                                                                            id={`file-input-${act.id}`}
+                                                                            style={{ display: 'none' }}
+                                                                            accept={act.tipo_documento === 'docx' ? '.docx,.doc' : '.pdf'}
+                                                                            onChange={(e) => {
+                                                                                // 🔥 CORRECCIÓN 2 (EL ERROR CRÍTICO DE TU PANTALLA): Extraemos el archivo individual [0] del explorador
+                                                                                if (e.target.files && e.target.files.length > 0) {
+                                                                                    procesarArchivoHijo(e.target.files[0]);
+                                                                                }
                                                                             }}
-                                                                        >
-                                                                            {archivoAsignado ? '🔄 Cambiar' : 'SUBIR ARCHIVO'}
-                                                                        </button>
+                                                                        />
 
-                                                                        {archivoAsignado && (
-                                                                            <button
-                                                                                type="button"
-                                                                                title="Retirar documento"
-                                                                                onClick={() => {
-                                                                                    setArchivosCargadosActividad(prev => {
-                                                                                        const copiaEstados = { ...prev };
-                                                                                        delete copiaEstados[act.id];
-                                                                                        return copiaEstados;
-                                                                                    });
-                                                                                }}
-                                                                                style={{ height: '32px', width: '32px', backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', transition: 'all 0.15s' }}
-                                                                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#ef4444'; e.currentTarget.style.color = '#ffffff'; }}
-                                                                                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#fee2e2'; e.currentTarget.style.color = '#ef4444'; }}
-                                                                            >
-                                                                                🗑️
+                                                                        {/* 🔥 COLUMNA INTEGRAL DE FORMATO: Agrupa el icono y la etiqueta de peso solicitado */}
+                                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                                                                            {/* Icono Reactivo PDF/DOCX de tu monitor */}
+                                                                            <div style={{
+                                                                                width: '42px', height: '44px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900', textTransform: 'uppercase',
+                                                                                backgroundColor: String(act.tipo_documento).toLowerCase() === 'docx' ? '#eff6ff' : '#fee2e2',
+                                                                                color: String(act.tipo_documento).toLowerCase() === 'docx' ? '#2563eb' : '#ef4444',
+                                                                                border: String(act.tipo_documento).toLowerCase() === 'docx' ? '1px solid #bfdbfe' : '1px solid #fca5a5'
+                                                                            }}>
+                                                                                {act.tipo_documento || 'PDF'}
+                                                                            </div>
+
+                                                                            {/* 🏷️ EL NUEVO INDICADOR SOLICITADO: Fijo, visible y centrado abajo del icono */}
+                                                                            <span style={{
+                                                                                fontSize: '9.5px',
+                                                                                fontWeight: '800',
+                                                                                color: '#64748b',
+                                                                                textTransform: 'uppercase',
+                                                                                letterSpacing: '0.2px',
+                                                                                backgroundColor: '#e2e8f0',
+                                                                                padding: '1px 5px',
+                                                                                borderRadius: '3px',
+                                                                                whiteSpace: 'nowrap'
+                                                                            }}>
+                                                                                Max 15Mb
+                                                                            </span>
+                                                                        </div>
+
+                                                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                                                            <button type="button" onClick={() => document.getElementById(`file-input-${act.id}`).click()} style={{ height: '32px', padding: '0 14px', backgroundColor: archivoAsignado ? '#475569' : '#16a34a', color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '11.5px', fontWeight: '700', cursor: 'pointer' }}>
+                                                                                {archivoAsignado ? '🔄 Cambiar' : 'SUBIR ARCHIVO'}
                                                                             </button>
-                                                                        )}
+                                                                            {archivoAsignado && (
+                                                                                <button type="button" title="Retirar documento" onClick={() => setArchivosCargadosActividad(prev => { const copia = { ...prev }; delete copia[act.id]; return copia; })} style={{ height: '32px', width: '32px', backgroundColor: '#fee2e2', color: '#ef4444', border: '1px solid #fca5a5', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>🗑️</button>
+                                                                            )}
+                                                                        </div>
+
+                                                                        <span style={{ fontSize: '11px', color: '#475569', fontWeight: '500', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                            {archivoAsignado ? (
+                                                                                /* 📎 Caso A: El alumno acaba de arrastrar o seleccionar un archivo nuevo en su computadora */
+                                                                                <strong
+                                                                                    title={archivoAsignado.name} // 🔥 Muestra el nombre completo del nuevo archivo al pasar el mouse
+                                                                                    style={{ color: '#16a34a' }}
+                                                                                >
+                                                                                    📎 {archivoAsignado.name}
+                                                                                </strong>
+                                                                            ) : act.archivo_alumno_url ? (
+                                                                                /* 📄 Caso B: Muestra el nombre real de la BD garantizando siempre la extensión visible */
+                                                                                (() => {
+                                                                                    const nombreBase = act.nombre_real_alumno || 'Trabajo_Entregado';
+                                                                                    let nombreCompletoConExtension = nombreBase;
+
+                                                                                    if (!nombreBase.includes('.')) {
+                                                                                        const urlMin = act.archivo_alumno_url.toLowerCase();
+                                                                                        const extensionReal = urlMin.endsWith('.docx') ? '.docx'
+                                                                                            : urlMin.endsWith('.doc') ? '.doc'
+                                                                                                : urlMin.endsWith('.zip') ? '.zip'
+                                                                                                    : '.pdf';
+                                                                                        nombreCompletoConExtension = `${nombreBase}${extensionReal}`;
+                                                                                    }
+
+                                                                                    return (
+                                                                                        <a
+                                                                                            href={`http://localhost:5000${act.archivo_alumno_url}`}
+                                                                                            target="_blank"
+                                                                                            rel="noopener noreferrer"
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            title={nombreCompletoConExtension} // 🔥 EL CAMBIO CLAVE: Hace aparecer el cartel flotante nativo con el nombre completo sin recortes
+                                                                                            style={{
+                                                                                                color: '#0284c7',
+                                                                                                textDecoration: 'underline',
+                                                                                                fontWeight: '700',
+                                                                                                cursor: 'pointer',
+                                                                                                display: 'inline-flex',
+                                                                                                alignItems: 'center'
+                                                                                            }}
+                                                                                        >
+                                                                                            📎 {nombreCompletoConExtension}
+                                                                                        </a>
+                                                                                    );
+                                                                                })()
+                                                                            ) : (
+                                                                                /* 📂 Caso C: El casillero está totalmente inmaculado y esperando entrega */
+                                                                                "Arrastra o haz clic aquí"
+                                                                            )}
+                                                                        </span>
+
+
+
+
                                                                     </div>
 
-                                                                    <span style={{ fontSize: '10.5px', color: '#475569', fontWeight: '500', width: '160px', lineHeight: '1.3' }}>
-                                                                        {archivoAsignado ? (
-                                                                            <strong style={{ color: '#16a34a', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                                                📎 {archivoAsignado.name}
+                                                                    {/* 📝 NUEVA CAJA DE COMENTARIOS PARA EL DOCENTE (Aumenta estéticamente el alto) */}
+                                                                    <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                                        <label htmlFor={`comment-${act.id}`} style={{ fontSize: '11.5px', fontWeight: '700', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.2px' }}>
+                                                                            ✍️ Agregar comentario para el docente:
+                                                                        </label>
+                                                                        <textarea
+                                                                            id={`comment-${act.id}`}
+                                                                            rows="2"
+                                                                            placeholder="Escribe aquí alguna nota aclaratoria o mensaje sobre tu entrega si es necesario..."
+                                                                            value={comentariosActividad[act.id] || ''}
+                                                                            onChange={(e) => setComentariosActividad(prev => ({ ...prev, [act.id]: e.target.value }))}
+                                                                            style={{ width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '12.5px', fontFamily: 'sans-serif', resize: 'none', boxSizing: 'border-box', backgroundColor: '#ffffff', color: '#1e293b', outline: 'none', transition: 'border-color 0.15s' }}
+                                                                            onFocus={(e) => e.target.style.borderColor = '#2563eb'}
+                                                                            onBlur={(e) => e.target.style.borderColor = '#cbd5e1'}
+                                                                        />
+                                                                    </div>
+
+
+                                                                    {/* ⏳ EL NUEVO INDICADOR SOLICITADO: Subido última vez (CONDICIONAL) */}
+                                                                    {act.fecha_entrega_formateada && (
+                                                                        <div style={{
+                                                                            width: '100%',
+                                                                            textAlign: 'left',
+                                                                            fontSize: '11px',
+                                                                            fontWeight: '600',
+                                                                            color: '#64748b',
+                                                                            marginTop: '2px',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            gap: '4px'
+                                                                        }}>
+                                                                            <span>📅 Subido última vez:</span>
+                                                                            <strong style={{ color: '#0f172a', backgroundColor: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
+                                                                                {act.fecha_entrega_formateada}
                                                                             </strong>
+                                                                        </div>
+                                                                    )}
+
+
+                                                                    {/* 🚀 BOTÓN CONFIRMAR AHORA 100% FUNCIONAL Y CONECTADO MEDIANTE AXIOS */}
+                                                                    {/* 🚀 BOTÓN CONFIRMAR: ENVÍA EL FORMULARIO BINARIO Y GATILLA EL REFRESCO INMEDIATO DE DATOS */}
+                                                                    <button
+                                                                        type="button"
+                                                                        // 🔥 CONTROL DE BLOQUEO INTERNO: Si ya se está subiendo el archivo, se deshabilita el clic para evitar duplicados
+                                                                        disabled={!archivoAsignado || !!subiendoActividad[act.id]}
+                                                                        onClick={async () => {
+                                                                            if (!archivoAsignado || subiendoActividad[act.id]) return;
+
+                                                                            try {
+                                                                                // ⏳ ACTIVAMOS EL LETRERO DE ESPERA EN TU MONITOR
+                                                                                setSubiendoActividad(prev => ({ ...prev, [act.id]: true }));
+                                                                                console.log("-> [AXIOS] Subiendo paquete binario Form-Data...");
+
+                                                                                const formData = new FormData();
+                                                                                formData.append('archivo_entregable', archivoAsignado);
+                                                                                formData.append('actividad_id', act.id);
+                                                                                formData.append('estudiante_id', estudianteId);
+                                                                                formData.append('comentario_alumno', comentariosActividad[act.id] || '');
+
+                                                                                const res = await axios.post('http://localhost:5000/api/entregas/enviar-trabajo', formData, {
+                                                                                    headers: { 'Content-Type': 'multipart/form-data' }
+                                                                                });
+
+                                                                                alert(`🎉 ${res.data.message}`);
+
+                                                                                // Limpiamos los casilleros de esta actividad en memoria
+                                                                                setArchivosCargadosActividad(prev => { const c = { ...prev }; delete c[act.id]; return c; });
+
+                                                                                // 🔄 RECARGA SILENCIOSA: Sincroniza la ventana con los datos frescos de la BD
+                                                                                await cargarCronogramaDetallado();
+
+                                                                            } catch (error) {
+                                                                                console.error("🚨 Fallo en la red al enviar la actividad:", error);
+                                                                                alert(error.response?.data?.message || "Hubo un error al procesar el envío en el servidor.");
+                                                                            } finally {
+                                                                                // 🏁 LIBERAMOS EL ESTADO DE ESPERA TRAS CONCLUIR EL PROCESO
+                                                                                setSubiendoActividad(prev => ({ ...prev, [act.id]: false }));
+                                                                            }
+                                                                        }}
+                                                                        style={{
+                                                                            height: '36px',
+                                                                            width: '100%',
+                                                                            // 🎨 UX DINÁMICO DE COLORES: Cambia a gris pizarra de espera mientras se realiza la subida
+                                                                            backgroundColor: subiendoActividad[act.id] ? '#64748b' : (archivoAsignado ? '#0284c7' : '#cbd5e1'),
+                                                                            color: archivoAsignado || subiendoActividad[act.id] ? '#ffffff' : '#94a3b8',
+                                                                            border: 'none',
+                                                                            borderRadius: '6px',
+                                                                            fontSize: '12.5px',
+                                                                            fontWeight: '700',
+                                                                            // 🛑 CURSOR ADAPTATIVO: Muestra el reloj de arena si está procesando la red
+                                                                            cursor: subiendoActividad[act.id] ? 'wait' : (archivoAsignado ? 'pointer' : 'not-allowed'),
+                                                                            boxShadow: archivoAsignado && !subiendoActividad[act.id] ? '0 2px 4px rgba(2, 132, 199, 0.2)' : 'none',
+                                                                            transition: 'all 0.15s ease-in-out',
+                                                                            display: 'flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            gap: '6px'
+                                                                        }}
+                                                                    >
+                                                                        {/* 🧠 EL MENSAJE DINÁMICO SOLICITADO: Cambia el texto en vivo según el estado de la red */}
+                                                                        {subiendoActividad[act.id] ? (
+                                                                            <span>⏳ Subiendo actividad... Por favor, espere.</span>
                                                                         ) : (
-                                                                            `Drag & drop or Click to upload ${String(act.tipo_documento).toUpperCase()}, max 15MB`
+                                                                            <span>🚀 {act.estado === 'COMPLETO' ? 'Actualizar e Invalidar Entrega Previa' : 'Confirmar y Enviar Actividad'}</span>
                                                                         )}
-                                                                    </span>
+                                                                    </button>
+
                                                                 </div>
-
-                                                                {/* 🚀 BOTÓN CONFIRMAR: Se mantiene únicamente visual y deshabilitado por el momento */}
-                                                                <button
-                                                                    type="button"
-                                                                    disabled
-                                                                    style={{
-                                                                        height: '34px', padding: '0 20px',
-                                                                        backgroundColor: archivoAsignado ? '#0284c7' : '#94a3b8',
-                                                                        color: '#ffffff', border: 'none', borderRadius: '4px', fontSize: '12px', fontWeight: '700',
-                                                                        cursor: 'not-allowed', opacity: archivoAsignado ? 1 : 0.6, boxShadow: '0 2px 4px rgba(0,0,0,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px'
-                                                                    }}
-                                                                >
-                                                                    <span>🚀 Confirmar y Enviar Actividad</span>
-                                                                </button>
-                                                            </div>
-
-                                                        </div>
-                                                    );
-                                                })
-                                            ) : (
-                                                <p style={{ margin: '10px 0', fontSize: '13px', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
-                                                    No se registran tareas pendientes para esta sesión de aprendizaje.
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <p style={{ margin: '10px 0', fontSize: '13px', color: '#94a3b8', textAlign: 'center', fontStyle: 'italic' }}>
+                                                No se registran tareas pendientes para esta sesión de aprendizaje.
+                                            </p>
+                                        )}
+                                    </div >
 
 
                                 </div>

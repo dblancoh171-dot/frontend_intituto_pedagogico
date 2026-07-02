@@ -30,7 +30,7 @@ const MisCursosEstudiante = ({ estudianteId, semestreId, onAbrirCurso }) => {
     }
 
     return (
-        <div style={{ padding: '32px' }}>
+        <div style={{ padding: '12px' }}>
             <h2 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', marginBottom: '6px' }}>Mis Cursos Matriculados</h2>
             <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '24px' }}>
                 A continuación se detallan las asignaturas vigentes correspondientes a tu periodo académico consolidado.
