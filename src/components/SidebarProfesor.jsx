@@ -20,25 +20,41 @@ const SidebarProfesor = ({ profesorNombre, isColapsado, onToggleColapso, vistaAc
                 {/* Listado de Opciones Exclusivas del Profesor */}
                 <div className="sidebar-menu">
                     <div className="sidebar-item profesor-item">📊 <span>Inicio (Dashboard)</span></div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'perfil' ? 'profesor-activo' : 'profesor-item'}`}
+                        onClick={() => onCambiarVista('perfil')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        👤 <span>Perfil</span>
+                    </div>
                     <div className="sidebar-item profesor-item">📅 <span>Mi Horario</span></div>
 
-                    {/* Opción activa iluminada en verde esmeralda */}
-                    <div className="sidebar-item profesor-activo">📝 <span>Registro de Notas</span></div>
+                    {/* 📝 PESTAÑA: REGISTRO DE NOTAS (Dinamizada) */}
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'registro-notas' ? 'profesor-activo' : 'profesor-item'}`}
+                        onClick={() => onCambiarVista('registro-notas')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        📝 <span>Registro de Notas</span>
+                    </div>
+
+                    {/* 📚 PESTAÑA: MIS CURSOS */}
                     <div
                         className={`sidebar-item ${vistaActiva === 'cursos' ? 'profesor-activo' : 'profesor-item'}`}
-                        onClick={() => onCambiarVista('cursos')} // 👈 Envía la orden a App.js
+                        onClick={() => onCambiarVista('cursos')}
+                        style={{ cursor: 'pointer' }}
                     >
                         📚 <span>Mis Cursos</span>
                     </div>
-                    {/* 📁 PESTAÑA: RECEPCIÓN DE ACTIVIDADES (VISTA DOCENTE) */}
+
+                    {/* 📥 PESTAÑA: RECEPCIÓN DE ACTIVIDADES */}
                     <div
-                        className={`sidebar-item ${vistaActiva === 'recepcion-actividades' ? 'activo' : ''}`}
+                        className={`sidebar-item ${vistaActiva === 'recepcion-actividades' ? 'profesor-activo' : 'profesor-item'}`}
                         onClick={() => onCambiarVista('recepcion-actividades')}
                         style={{ cursor: 'pointer', marginTop: '4px' }}
                     >
                         📥 <span>Recepción de Actividades</span>
                     </div>
-
 
                     <div className="sidebar-item profesor-item">👥 <span>Mis Alumnos</span></div>
                     <div className="sidebar-item profesor-item">🗂️ <span>Actas Consolidadas</span></div>
@@ -73,3 +89,4 @@ const SidebarProfesor = ({ profesorNombre, isColapsado, onToggleColapso, vistaAc
 };
 
 export default SidebarProfesor;
+

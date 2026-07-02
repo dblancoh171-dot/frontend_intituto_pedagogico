@@ -11,6 +11,7 @@ import ContenidoClase from './components/ContenidoClase';
 import RegistrarAsistencia from './components/RegistrarAsistencia';
 import BandejaCursosEvaluacion from './components/BandejaCursosEvaluacion';
 import BandejaActividadesDocente from './components/BandejaActividadesDocente';
+import AuditoriaEntregasAlumnos from './components/AuditoriaEntregasAlumnos';
 
 
 
@@ -22,7 +23,7 @@ function App() {
   // Cambia este ID (ej: 1, 4 o 5) para probar cómo reacciona cada alumno independiente
   // 🧪 SIMULADOR DE SESIÓN COMPLETO (Elegir un Rol y un ID para probar)
 
-  const [rolActivo, setRolActivo] = useState('estudiante'); // 👈 'estudiante' o 'profesor'
+  const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
 
   const [estudianteIdId, setEstudianteIdId] = useState(1);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
@@ -37,6 +38,8 @@ function App() {
   const [sesionParaContenido, setSesionParaContenido] = useState(null);
 
   const [cursoSeleccionadoEstudiante, setCursoSeleccionadoEstudiante] = useState(null);
+
+  const [actividadParaEvaluar, setActividadParaEvaluar] = useState(null);
 
   // 🔄 REGLA DE RESET: Cada vez que cambies a mano el ID de pruebas, 
   // el sistema regresará la vista activa de forma obligatoria a 'perfil'
@@ -177,12 +180,24 @@ function App() {
               }}
             />
           ) : subSeccionActiva === 'evaluar-actividades' ? (
-            /* 📋 PRÓXIMO COMPONENTE: Lista descriptiva de las tarjetas de tareas para el docente */
             <BandejaActividadesDocente
               cursoId={cursoParaSesiones?.id || cursoParaSesiones?.curso_id || cursoParaSesiones?.carga_id}
               cursoNombre={cursoParaSesiones?.curso_nombre || cursoParaSesiones?.nombre}
               codigoCurso={cursoParaSesiones?.codigo}
               onRegresar={() => setSubSeccionActiva('recepcion-actividades')}
+
+              // 🔥 LA SOLUCIÓN CLAVE: Inyectamos la función puente que faltaba en tu monitor
+              onAbrirAuditoria={(act) => {
+                setActividadParaEvaluar(act);
+                setSubSeccionActiva('auditar-entrega');
+              }}
+            />
+          ) : subSeccionActiva === 'auditar-entrega' ? (
+            /* 📥 NUEVO COMPONENTE EN PANTALLA COMPLETA */
+            <AuditoriaEntregasAlumnos
+              cursoId={cursoParaSesiones?.id || cursoParaSesiones?.curso_id || cursoParaSesiones?.carga_id}
+              actividad={actividadParaEvaluar}
+              onRegresar={() => setSubSeccionActiva('evaluar-actividades')}
             />
           ) : subSeccionActiva === 'sesiones' ? (
             <GestionarSesiones

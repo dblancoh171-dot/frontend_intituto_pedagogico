@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const BandejaActividadesDocente = ({ cursoId, cursoNombre, codigoCurso, onRegresar }) => {
+const BandejaActividadesDocente = ({ cursoId, cursoNombre, codigoCurso, onRegresar, onAbrirAuditoria }) => {
     const [actividades, setActividades] = useState([]);
     const [cargando, setCargando] = useState(true);
 
@@ -68,7 +68,7 @@ const BandejaActividadesDocente = ({ cursoId, cursoNombre, codigoCurso, onRegres
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                     }}>
-                        📋 Actividades Programadas en el Curso
+                        📋 Actividades Programadas en la Sesión
                     </h3>
 
                     {/* Contador reactivo compacto tipo esfera para dar feedback visual */}
@@ -109,11 +109,12 @@ const BandejaActividadesDocente = ({ cursoId, cursoNombre, codigoCurso, onRegres
                     </p>
                 </div>
             ) : (
-                /* 💎 ESCENARIO B: Renderizado descriptivo de las tarjetas evaluativas reales */
+                /* 💎 ESCENARIO B: Renderizado de las tarjetas evaluativas reales */
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
                     {actividades.map((act) => (
                         <div
                             key={act.actividad_id}
+                            onClick={() => onAbrirAuditoria(act)}
                             style={{
                                 backgroundColor: '#ffffff',
                                 border: '1px solid #e2e8f0',
