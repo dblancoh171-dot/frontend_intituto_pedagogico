@@ -23,7 +23,7 @@ function App() {
   // Cambia este ID (ej: 1, 4 o 5) para probar cómo reacciona cada alumno independiente
   // 🧪 SIMULADOR DE SESIÓN COMPLETO (Elegir un Rol y un ID para probar)
 
-  const [rolActivo, setRolActivo] = useState('estudiante'); // 👈 'estudiante' o 'profesor'
+  const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
 
   const [estudianteIdId, setEstudianteIdId] = useState(1);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
