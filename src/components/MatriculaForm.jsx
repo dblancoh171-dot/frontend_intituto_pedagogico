@@ -73,7 +73,7 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo }) => {
                 }
 
                 const fechaActual = new Date();
-                const fechaLimiteMatricula = new Date("2026-06-30T23:59:59");
+                const fechaLimiteMatricula = new Date("2026-07-30T23:59:59");
                 if (fechaActual > fechaLimiteMatricula) {
                     setFueraDeFecha(true);
                 } else {
