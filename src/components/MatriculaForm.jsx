@@ -18,6 +18,7 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo, fechaLimiteBD }) => 
     const [cargando, setCargando] = useState(false);
     const [selectedCursos, setSelectedCursos] = useState({});
     const [totalCargosPendientes, setTotalCargosPendientes] = useState(0);
+    const [cargandoValidacion, setCargandoValidacion] = useState(true);
 
 
     const [mostrarModalConfirmar, setMostrarModalConfirmar] = useState(false);
@@ -54,33 +55,39 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo, fechaLimiteBD }) => 
                 // Evaluamos usando el nombre de columna correcto
                 const cicloOrigen = Number(estudiante.ciclo_actual || estudiante.ciclo_cursado || 1);
 
-                if (cicloOrigen === 1) {
-                    opcionesDeCiclo = [1];
+                if (notasRes.data.yaMatriculado) {
+
+                    // 🛡️ Fijamos de forma rígida el ciclo en el que se inscribió realmente en tu monitor (Ciclo 3)
+                    setCiclosPermitidos([cicloOrigen]);
+                    setCicloAMatricular(cicloOrigen);
                     setEsAutomatica(false);
-                } else if (cantidadJalados >= 3) {
-                    opcionesDeCiclo = [cicloOrigen];
-                    setEsAutomatica(false);
+                    setAlumnoYaMatriculado(true);
+
                 } else {
-                    const cicloSiguiente = cicloOrigen + 1;
-                    if (cicloSiguiente <= 10) opcionesDeCiclo.push(cicloSiguiente);
+
+                    if (cicloOrigen === 1) {
+                        opcionesDeCiclo = [1];
+                    } else if (cantidadJalados >= 3) {
+                        opcionesDeCiclo = [cicloOrigen];
+
+                    } else {
+                        const cicloSiguiente = cicloOrigen + 1;
+                        if (cicloSiguiente <= 10) opcionesDeCiclo.push(cicloSiguiente);
+
+                    }
+
+                    setCiclosPermitidos(opcionesDeCiclo); // 👈 Corregido el nombre legítimo
                     setEsAutomatica(false);
+
+                    if (opcionesDeCiclo.length > 0) {
+                        setCicloAMatricular(opcionesDeCiclo[0]); // 👈 Extrae el número directo (Ej: 1)
+                    }
+                    setAlumnoYaMatriculado(false);
                 }
 
-                setCiclosPermitidos(opcionesDeCiclo); // 👈 Corregido el nombre legítimo
+                // const fechaActual = new Date();
 
-                if (opcionesDeCiclo.length > 0) {
-                    setCicloAMatricular(opcionesDeCiclo[0]); // 👈 Extrae el número directo (Ej: 1)
-                }
-
-                const fechaActual = new Date();
-                // const fechaLimiteMatricula = new Date("2026-06-30T23:59:59");
-                // if (fechaActual > fechaLimiteMatricula) {
-                //     setFueraDeFecha(true);
-                // } else {
-                //     setFueraDeFecha(false);
-                // }
-
-                setFueraDeFecha(false);
+                // setFueraDeFecha(false);
             } catch (error) {
                 console.error("🚨 Error al calcular la matrícula del alumno:", error);
             }
@@ -116,9 +123,11 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo, fechaLimiteBD }) => 
                     if (c.obligatorio) seleccionInicial[c.id] = true;
                 });
                 setSelectedCursos(seleccionInicial);
+                setCargandoValidacion(false);
 
             } catch (error) {
                 console.error("Error al traer los cursos:", error);
+                setCargandoValidacion(false);
             }
         };
         cargarCursos();
@@ -197,6 +206,17 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo, fechaLimiteBD }) => 
     const violandoReglaDeDeuda = totalCargosPendientes >= 3 && cargosSeleccionadosCount === 0;
 
     const matriculadoDentroDelPlazo = alumnoYaMatriculado && !fueraDeFecha;
+
+    if (cargandoValidacion) {
+        return (
+            <div style={{ padding: '40px', backgroundColor: '#f8fafc', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ width: '40px', height: '40px', border: '4px solid #cbd5e1', borderTopColor: '#2563eb', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                <span style={{ fontSize: '14px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                    Sincronizando Ficha de Matrícula...
+                </span>
+            </div>
+        );
+    }
 
     return (
         <div className="container">
@@ -410,7 +430,10 @@ const MatriculaForm = ({ onNombreCargado, estudianteIdFijo, fechaLimiteBD }) => 
                         }}>
                         {/* Título alineado elegantemente en texto plano */}
                         <h2 style={{ fontSize: '15px', fontWeight: 'bold', margin: '0 0 5px 0', color: '#000000', borderBottom: '2px solid #333333', paddingBottom: '6px', height: '23px' }}>
-                            CURSOS DISPONIBLES (Ciclo {cicloAMatricular})
+                            {alumnoYaMatriculado
+                                ? `CURSOS MATRICULADOS (Ciclo ${cicloAMatricular})`
+                                : `CURSOS DISPONIBLES (Ciclo ${cicloAMatricular})`
+                            }
                         </h2>
                         <table className="tabla-cursos" style={{ background: '#ffffff', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb', width: '100%', borderCollapse: 'collapse' }}>
                             <thead>

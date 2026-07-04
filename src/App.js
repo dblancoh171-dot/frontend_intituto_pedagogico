@@ -44,6 +44,7 @@ function App() {
 
   const [actividadParaEvaluar, setActividadParaEvaluar] = useState(null);
 
+
   // 🟢 AGREGA ESTE ESTADO JUNTO A TU VARIABLE fasesCalendario EN APP.JS:
   const [fechaInicioReal, setFechaInicioReal] = useState("Cargando fecha...");
   const [fechaLimiteReal, setFechaLimiteReal] = useState("Cargando plazo...");
