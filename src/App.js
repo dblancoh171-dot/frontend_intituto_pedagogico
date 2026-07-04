@@ -12,7 +12,10 @@ import RegistrarAsistencia from './components/RegistrarAsistencia';
 import BandejaCursosEvaluacion from './components/BandejaCursosEvaluacion';
 import BandejaActividadesDocente from './components/BandejaActividadesDocente';
 import AuditoriaEntregasAlumnos from './components/AuditoriaEntregasAlumnos';
-
+import AulaVirtualPendiente from './components/AulaVirtualPendiente';
+import CargaDocentePendiente from './components/CargaDocentePendiente';
+import BandejaDocentePendiente from './components/BandejaDocentePendiente';
+import MatriculaCerrada from './components/MatriculaCerrada';
 
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
@@ -23,9 +26,9 @@ function App() {
   // Cambia este ID (ej: 1, 4 o 5) para probar cómo reacciona cada alumno independiente
   // 🧪 SIMULADOR DE SESIÓN COMPLETO (Elegir un Rol y un ID para probar)
 
-  const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
+  const [rolActivo, setRolActivo] = useState('estudiante'); // 👈 'estudiante' o 'profesor'
 
-  const [estudianteIdId, setEstudianteIdId] = useState(1);
+  const [estudianteIdId, setEstudianteIdId] = useState(4);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
 
   // 🔥 CONTROL DE PESTAÑAS: Forzamos la selección inicial del sub-menú en 'perfil'
@@ -40,6 +43,60 @@ function App() {
   const [cursoSeleccionadoEstudiante, setCursoSeleccionadoEstudiante] = useState(null);
 
   const [actividadParaEvaluar, setActividadParaEvaluar] = useState(null);
+
+  // 🟢 AGREGA ESTE ESTADO JUNTO A TU VARIABLE fasesCalendario EN APP.JS:
+  const [fechaInicioReal, setFechaInicioReal] = useState("Cargando fecha...");
+  const [fechaLimiteReal, setFechaLimiteReal] = useState("Cargando plazo...");
+
+
+  const [fasesCalendario, setFasesCalendario] = useState({
+    deshabilitarCursosAlumno: false,
+    deshabilitarNotasAlumno: false,
+    deshabilitarRegistroNotasDocente: false,
+    deshabilitarRecepcionActividadesDocente: false
+  });
+
+  // 📡 CONSULTA SÍNCRONA DE CRONOGRAMA: Se ejecuta al levantar el portal
+  useEffect(() => {
+    const consultarFasesCalendario = async () => {
+      try {
+        console.log("-> [AXIOS] Evaluando etapas vigentes del calendario con la base de datos...");
+        // Golpeamos el endpoint que lee las 4 columnas de tu tabla semestres de MySQL Workbench
+        const res = await axios.get('http://localhost:5000/api/cursos/estado-calendario', {
+          params: { semestre_id: 1 } // Apunta al id 1 (periodo 2026-I) de tu monitor
+        });
+        if (res.data && res.data.fases) {
+          setFasesCalendario(res.data.fases);
+
+          // 🚀 TRUCO DE TRADUCCIÓN: Formateamos de forma ejecutiva la fecha real de Workbench (Ej: "15 de agosto de 2026")
+          if (res.data.fechas_oficiales?.apertura_clases) {
+            const fechaObj = new Date(res.data.fechas_oficiales.apertura_clases);
+            const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
+            setFechaInicioReal(fechaObj.toLocaleDateString('es-PE', opciones));
+          }
+
+          if (res.data.fechas_oficiales?.limite_matricula) {
+            const fechaLimiteObj = new Date(res.data.fechas_oficiales.limite_matricula);
+
+            // 📅 1. Formateamos la fecha (Ej: "12 de Julio de 2026")
+            const opcionesFecha = { day: 'numeric', month: 'long', year: 'numeric' };
+            const fechaTexto = fechaLimiteObj.toLocaleDateString('es-PE', opcionesFecha);
+
+            // ⏰ 2. Formateamos la hora nativa de la BD (Ej: "23:59" o "18:00")
+            const opcionesHora = { hour: '2-digit', minute: '2-digit', hour12: false };
+            const horaTexto = fechaLimiteObj.toLocaleTimeString('es-PE', opcionesHora);
+
+            // Concatonamos ambas variables en una sola cadena limpia
+            setFechaLimiteReal(`${fechaTexto} a las ${horaTexto}`);
+          }
+
+        }
+      } catch (error) {
+        console.error("🚨 Error al jalar las directrices del cronograma institucional:", error);
+      }
+    };
+    consultarFasesCalendario();
+  }, []);
 
   // 🔄 REGLA DE RESET: Cada vez que cambies a mano el ID de pruebas, 
   // el sistema regresará la vista activa de forma obligatoria a 'perfil'
@@ -110,17 +167,26 @@ function App() {
                 Documento / Código detectado en sesión: {nombreParaSidebar} (ID: {estudianteIdId})
               </div>
             </div>
+
+
           ) : subSeccionActiva === 'cursos' ? (
-            /* 📘 Pestaña 02: 🔥 NUEVA VISTA DE MIS CURSOS MATRICULADOS DEL ALUMNO */
-            <MisCursosEstudiante
-              estudianteId={estudianteIdId}
-              semestreId={1}
-              // 🔥 CAPTURAMOS EL CURSO SELECCIONADO Y MUTAMOS LA SUBSECCIÓN
-              onAbrirCurso={(curso) => {
-                setCursoSeleccionadoEstudiante(curso);
-                setSubSeccionActiva('sesiones-estudiante');
-              }}
-            />
+            /* 📚 FILTRO RECONFIGURADO: Si las clases aún no inician (Etapa Matrícula / Procesamiento) */
+            fasesCalendario.deshabilitarCursosAlumno ? (
+              /* ⏳ Escenario A: Abre la hermosa e independiente ventana de aviso en pantalla completa */
+              <AulaVirtualPendiente
+                fechaInicioClases={fechaInicioReal}
+              />
+            ) : (
+              /* 📖 Escenario B: Las clases ya iniciaron -> Carga tu grilla original con tus 7 materias */
+              <MisCursosEstudiante
+                estudianteId={estudianteIdId}
+                semestreId={1}
+                onAbrirCurso={(curso) => {
+                  setCursoSeleccionadoEstudiante(curso);
+                  setSubSeccionActiva('sesiones-estudiante');
+                }}
+              />
+            )
 
           ) : subSeccionActiva === 'sesiones-estudiante' ? (
             /* 📋 NUEVA VISTA: Cronograma de clases de este curso específico para el alumno */
@@ -140,11 +206,27 @@ function App() {
           ) : (
             /* 📘 Formulario de Matrícula Blindado contra Nulos */
             /* 🔥 EL TRUCO KEY: Al cambiar estudianteIdId, destruye los estados viejos y se resetea */
-            <MatriculaForm
-              key={`matr-${estudianteIdId}`}
-              estudianteIdFijo={estudianteIdId}
-              onNombreCargado={setNombreParaSidebar}
-            />
+            fasesCalendario?.periodoMatriculaVencido ? (
+
+              /* ESTADO 1: El plazo del calendario ya expiró por completo en la Base de Datos */
+              /* (Se acabó el límite y punto, desmonta todo y muestra la ventana de MatriculaCerrada) */
+              <MatriculaCerrada
+                fechaLimiteReal={fechaLimiteReal}
+              />
+            ) : (
+              /* 📘 Escenario B: Dentro de la fecha legal -> Carga tu formulario regular limpio de alertas [01/07/2026] */
+              <MatriculaForm
+                key={`matr-${estudianteIdId}`}
+                estudianteIdFijo={estudianteIdId}
+                fechaLimiteBD={fechaLimiteReal}
+                onNombreCargado={setNombreParaSidebar}
+                // Muta la subsección automáticamente a 'cursos' si el estudiante se inscribe con éxito en red [01/07/2026]
+                onMatriculaExitosa={() => setSubSeccionActiva('cursos')}
+                alumnoYaMatriculado={fasesCalendario?.deshabilitarCursosAlumno || false}
+                            
+                            onMatriculaExitosa={() => setSubSeccionActiva('cursos')}
+              />
+            )
           )
         ) : (
           // <RegistroNotasForm />
@@ -159,26 +241,37 @@ function App() {
               </div>
             </div>
           ) : subSeccionActiva === 'cursos' ? (
-            /* 🔥 PESTAÑA CONECTADA: Si pulsa "Mis Cursos" se renderiza la lista ejecutiva horizontal */
-            <MisCursosProfesor
-              profesorIdId={profesorIdId}
-              onCambiarVista={setSubSeccionActiva}
-              // 🔥 Pasamos una función para capturar los datos del curso clickeado
-              onAbrirSesiones={(curso) => {
-                setCursoParaSesiones(curso);
-                setSubSeccionActiva('sesiones'); // Abre la nueva vista
-              }}
-            />
+            /* 🚀 UNIFICACIÓN DE INTEGRIDAD: Evaluamos la bandera deshabilitarCursosAlumno que ya está activa en TRUE */
+            fasesCalendario.deshabilitarCursosAlumno ? (
+              /* ⏳ Escenario A: Período de matrícula/procesamiento activo -> Carga la ventana premium con tu aviso */
+              <CargaDocentePendiente
+                fechaInicioClases={fechaInicioReal}
+              />
+            ) : (
+              /* 📚 Escenario B: Las clases ya iniciaron -> Carga tu panel de tarjetas original de forma libre */
+              <MisCursosProfesor
+                profesorIdId={profesorIdId}
+                onCambiarVista={setSubSeccionActiva}
+                onAbrirSesiones={(curso) => {
+                  setCursoParaSesiones(curso);
+                  setSubSeccionActiva('sesiones');
+                }}
+              />
+            )
           ) : subSeccionActiva === 'recepcion-actividades' ? (
-            <BandejaCursosEvaluacion
-              profesorIdId={profesorIdId}
-              onAbrirBandejaCurso={(curso) => {
-                // Guardamos la carga útil del curso seleccionado de forma dinámica
-                setCursoParaSesiones(curso);
-                // 🚀 MUTACIÓN CLAVE: Cambiamos de ventana en el monitor hacia el desglose de tareas
-                setSubSeccionActiva('evaluar-actividades');
-              }}
-            />
+            /* 🚀 FILTRO EN CALIENTE: Si las clases aún no inician, desviamos al aviso diferencial [01/07/2026] */
+            fasesCalendario.deshabilitarCursosAlumno ? (
+              <BandejaDocentePendiente />
+            ) : (
+              /* 📁 Si el ciclo ya arrancó de forma formal, despliega la bandeja de cursos regular [01/07/2026] */
+              <BandejaCursosEvaluacion
+                profesorIdId={profesorIdId}
+                onAbrirBandejaCurso={(curso) => {
+                  setCursoParaSesiones(curso);
+                  setSubSeccionActiva('evaluar-actividades');
+                }}
+              />
+            )
           ) : subSeccionActiva === 'evaluar-actividades' ? (
             <BandejaActividadesDocente
               cursoId={cursoParaSesiones?.id || cursoParaSesiones?.curso_id || cursoParaSesiones?.carga_id}
