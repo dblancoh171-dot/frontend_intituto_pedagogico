@@ -15,7 +15,10 @@ import AuditoriaEntregasAlumnos from './components/AuditoriaEntregasAlumnos';
 import AulaVirtualPendiente from './components/AulaVirtualPendiente';
 import CargaDocentePendiente from './components/CargaDocentePendiente';
 import BandejaDocentePendiente from './components/BandejaDocentePendiente';
+import RegistroNotasDocente from './components/RegistroNotasDocente';
 import MatriculaCerrada from './components/MatriculaCerrada';
+import ActasNotasPendiente from './components/ActasNotasPendiente';
+import ActaCalificacionesCurso from './components/ActaCalificacionesCurso';
 
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
@@ -26,7 +29,7 @@ function App() {
   // Cambia este ID (ej: 1, 4 o 5) para probar cómo reacciona cada alumno independiente
   // 🧪 SIMULADOR DE SESIÓN COMPLETO (Elegir un Rol y un ID para probar)
 
-  const [rolActivo, setRolActivo] = useState('estudiante'); // 👈 'estudiante' o 'profesor'
+  const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
 
   const [estudianteIdId, setEstudianteIdId] = useState(4);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
@@ -43,6 +46,10 @@ function App() {
   const [cursoSeleccionadoEstudiante, setCursoSeleccionadoEstudiante] = useState(null);
 
   const [actividadParaEvaluar, setActividadParaEvaluar] = useState(null);
+
+  const [cursoNotaActivo, setCursoNotaActivo] = useState(null);
+
+  const [semestreIdActivo, setSemestreIdActivo] = useState(1);
 
 
   // 🟢 AGREGA ESTE ESTADO JUNTO A TU VARIABLE fasesCalendario EN APP.JS:
@@ -64,7 +71,7 @@ function App() {
         console.log("-> [AXIOS] Evaluando etapas vigentes del calendario con la base de datos...");
         // Golpeamos el endpoint que lee las 4 columnas de tu tabla semestres de MySQL Workbench
         const res = await axios.get('http://localhost:5000/api/cursos/estado-calendario', {
-          params: { semestre_id: 1 } // Apunta al id 1 (periodo 2026-I) de tu monitor
+          params: { semestre_id: semestreIdActivo } // Apunta al id 1 (periodo 2026-I) de tu monitor
         });
         if (res.data && res.data.fases) {
           setFasesCalendario(res.data.fases);
@@ -145,11 +152,15 @@ function App() {
         />
       ) : (
         <SidebarProfesor
-          profesorNombre={nombreParaSidebar} // 🔥 AHORA ES DINÁMICO
+          profesorNombre={nombreParaSidebar}
           isColapsado={sidebarColapsado}
           onToggleColapso={() => setSidebarColapsado(!sidebarColapsado)}
-          vistaActiva={subSeccionActiva} // 🔥 ENVIAMOS LA VISTA DE CONTROL
-          onCambiarVista={setSubSeccionActiva} // 🔥 ENVIAMOS EL CONMUTADOR
+          vistaActiva={subSeccionActiva}
+          // 🚀 EL SECRETO: Cada vez que el docente pulse una pestaña del menú, limpiamos la RAM
+          onCambiarVista={(nuevaVista) => {
+            setCursoNotaActivo(null); // 🔥 Resetea el curso seleccionado para que siempre abra el catálogo de tarjetas
+            setSubSeccionActiva(nuevaVista);
+          }}
         />
       )}
 
@@ -181,7 +192,7 @@ function App() {
               /* 📖 Escenario B: Las clases ya iniciaron -> Carga tu grilla original con tus 7 materias */
               <MisCursosEstudiante
                 estudianteId={estudianteIdId}
-                semestreId={1}
+                semestreId={semestreIdActivo}
                 onAbrirCurso={(curso) => {
                   setCursoSeleccionadoEstudiante(curso);
                   setSubSeccionActiva('sesiones-estudiante');
@@ -196,7 +207,7 @@ function App() {
               cursoNombre={cursoSeleccionadoEstudiante?.curso_nombre}
               codigoCurso={cursoSeleccionadoEstudiante?.codigo_curso}
               estudianteId={estudianteIdId}
-              semestreId={1}
+              semestreId={semestreIdActivo}
               onRegresar={() => setSubSeccionActiva('cursos')}
             />
           ) : subSeccionActiva === 'calificaciones' ? (
@@ -224,8 +235,8 @@ function App() {
                 // Muta la subsección automáticamente a 'cursos' si el estudiante se inscribe con éxito en red [01/07/2026]
                 onMatriculaExitosa={() => setSubSeccionActiva('cursos')}
                 alumnoYaMatriculado={fasesCalendario?.deshabilitarCursosAlumno || false}
-                            
-                            onMatriculaExitosa={() => setSubSeccionActiva('cursos')}
+
+                onMatriculaExitosa={() => setSubSeccionActiva('cursos')}
               />
             )
           )
@@ -330,15 +341,36 @@ function App() {
               sesionId={sesionParaContenido?.id}
               onRegresar={() => setSubSeccionActiva('sesiones')}
             />
-          ) : (
-
-            /* Pestaña de Notas (Por el momento en texto plano hasta crear su formulario) */
-            <div className="panel-control">
-              <h2>REGISTRO DE CALIFICACIONES OFICIALES</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>Selecciona tu asignatura asignada en este periodo para abrir el acta de evaluación.</p>
-            </div>
-          )
-        )}
+          ) : (subSeccionActiva === 'notas' || subSeccionActiva === 'registro-notas' || subSeccionActiva === 'calificaciones') ? (
+            /* 🚀 COMPORTAMIENTO BLINDADO: El módulo opera estrictamente si la subsección es 'notas' */
+            fasesCalendario.deshabilitarCursosAlumno ? (
+              <ActasNotasPendiente />
+            ) : (
+              /* Decidimos de forma reactiva qué ventana pintar en pantalla completa [01/07/2026] */
+              cursoNotaActivo ? (
+                /* Ventana B: Sábana de Notas con los alumnos matriculados de tu base de datos */
+                <ActaCalificacionesCurso
+                  curso={cursoNotaActivo}
+                  profesorId={profesorIdId}
+                  semestreId={semestreIdActivo}
+                  onRegresar={() => setCursoNotaActivo(null)} // ⬅ Resetea el estado local al pulsar el enlace de regreso
+                />
+              ) : (
+                /* Ventana A: El catálogo general de tarjetas de asignaturas de tu monitor */
+                <RegistroNotasDocente
+                  profesorId={profesorIdId}
+                  semestreId={semestreIdActivo}
+                  onSeleccionarCurso={(curso) => {
+                    console.log("-> Curso seleccionado para evaluar:", curso);
+                    setCursoNotaActivo(curso);
+                  }}
+                />
+              )
+            ) 
+          ): (
+            /* 🚀 CIERRE MATE DE LA CASCADA: Si no coincide con ninguna vista de arriba, no pinta nada roto */
+            null
+          ))}
       </div>
 
     </div>
