@@ -19,7 +19,7 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                 <div className="sidebar-menu">
                     <div className="sidebar-item">📊 <span>Dashboard</span></div>
 
-                    {/* 🔥 PESTAÑA PERFIL: Ilumina si vistaActiva es 'perfil' */}
+                    {/* 🔥 PESTAÑA PERFIL */}
                     <div
                         className={`sidebar-item ${vistaActiva === 'perfil' ? 'activo' : ''}`}
                         onClick={() => onCambiarVista('perfil')}
@@ -27,7 +27,7 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                         👤 <span>Mi Perfil</span>
                     </div>
 
-                    {/* 🔥 PESTAÑA MATRÍCULA: Ilumina si vistaActiva es 'matricula' */}
+                    {/* 🔥 PESTAÑA MATRÍCULA */}
                     <div
                         className={`sidebar-item ${vistaActiva === 'matricula' ? 'activo' : ''}`}
                         onClick={() => onCambiarVista('matricula')}
@@ -35,13 +35,27 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                         📘 <span>Proceso Matrícula</span>
                     </div>
 
+                    {/* 🔥 PESTAÑA MIS CURSOS (Sesiones y Materiales) */}
                     <div
                         className={`sidebar-item ${vistaActiva === 'cursos' ? 'activo' : ''}`}
                         onClick={() => onCambiarVista('cursos')}
-                        style={{ cursor: 'pointer' }} // Hace que aparezca la mano al pasar el mouse
+                        style={{ cursor: 'pointer' }}
                     >
                         📝 <span>Mis Cursos</span>
                     </div>
+
+                    {/* ========================================================================= */}
+                    {/* 🔥 REPARACIÓN SÓNICA: Sincronizado al 100% con la compuerta de tu App.js [01/24, 01/25] */}
+                    {/* ========================================================================= */}
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'calificaciones' ? 'activo' : ''}`}
+                        onClick={() => onCambiarVista('calificaciones')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        📙 <span>Mis Calificaciones</span>
+                    </div>
+                    {/* ========================================================================= */}
+
                     <div className="sidebar-item">⏳ <span>Historial Académico</span></div>
                     <div className="sidebar-item">💳 <span>Mis Pagos</span></div>
                     <div className="sidebar-item">⚙️ <span>Configuración</span></div>
@@ -49,7 +63,7 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
             </div>
 
             <div className="sidebar-perfil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px 16px', borderTop: '1px solid #f1f5f9', margin: '0 12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyValue: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
                     👤
                 </div>
                 <div className="sidebar-usuario-info">
@@ -63,4 +77,3 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
 };
 
 export default Sidebar;
-

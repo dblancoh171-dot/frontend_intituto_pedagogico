@@ -17,6 +17,13 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
 
     const [modalAlertaFinalAbierto, setModalAlertaFinalAbierto] = useState(false);
 
+    const ultimaEvaluacionDelArray = columnasNotas.length > 0 ? columnasNotas[columnasNotas.length - 1] : null;
+
+    // Evaluamos si el primer alumno ya tiene registrada esa última nota con bandera de publicación en 1
+    const todasLasNotasPublicadas = ultimaEvaluacionDelArray && alumnos.length > 0
+        ? alumnos[0].publicados?.[ultimaEvaluacionDelArray.id] === 1
+        : false;
+
 
     // 🚀 FIRMA DIGITAL MASIVA PROGRESIVA CON BLOQUEO ESTRICTO POR CASILLEROS VACÍOS [30/06/2026]
     const manejarPublicacionOficial = async () => {
@@ -149,6 +156,42 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
             cargarDatosActa();
         }
     }, [curso, semestreId]);
+
+
+    const handleCierreActaFinalGlobal = async () => {
+        if (!ultimaEvaluacionDelArray) {
+            alert("Error: No se registran unidades configuradas en la grilla.");
+            return;
+        }
+
+        const confirmar = window.confirm("¿Está completamente seguro de CERRAR EL ACTA FINAL? Esta acción es irreversible y congelará las calificaciones del salón en el historial oficial.");
+        if (!confirmar) return;
+
+        try {
+            // El body viaja dinámico amarrado a tus props y al último ID real detectado
+            const response = await axios.post('http://localhost:5000/api/notas/cerrar-acta-final', {
+                curso_id: curso.curso_id || curso.id, // Lee la desestructuración de tu prop de cabecera
+                semestre_id: semestreId,
+                configuracion_nota_id: Number(ultimaEvaluacionDelArray.id), // ◄ ¡DINÁMICO! Envía el ID de la última unidad real
+                profesor_id: profesorId
+            });
+
+            setNotificacion({
+                visible: true,
+                mensaje: `📋 ¡Éxito! ${response.data.message}`
+            });
+
+            setTimeout(() => {
+                setNotificacion({ visible: false, mensaje: '' });
+                window.location.reload();
+            }, 2500);
+
+        } catch (error) {
+            console.error("🚨 Error crítico al consolidar el acta final:", error);
+            alert(error.response?.data?.message || "Ocurrió un error de red al intentar cerrar el acta final.");
+        }
+    };
+
 
 
     // 💾 GUARDADO AL VUELO: Registra o actualiza la nota en caliente al salir del input (onBlur)
@@ -407,6 +450,47 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                     >
                         Publicar Notas
                     </button>
+
+                    {todasLasNotasPublicadas ? (
+                        <button
+                            type="button"
+                            onClick={handleCierreActaFinalGlobal}
+                            style={{
+                                backgroundColor: '#10b981', // Verde esmeralda corporativo premium
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '0 20px',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                height: '38px',
+                                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            📋 Cerrar Acta Final
+                        </button>
+                    ) : (
+                        <button
+                            type="button"
+                            disabled
+                            style={{
+                                backgroundColor: '#cbd5e1', // Gris plomo inhabilitado
+                                color: '#94a3b8',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '0 20px',
+                                fontSize: '13px',
+                                fontWeight: '700',
+                                cursor: 'not-allowed',
+                                height: '38px'
+                            }}
+                            title="Esta acción se activará automáticamente cuando la última evaluación didáctica del ciclo sea publicada oficialmente."
+                        >
+                            🔒 Cerrar Acta Final
+                        </button>
+                    )}
 
                 </div>
             </div>

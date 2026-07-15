@@ -19,7 +19,9 @@ import RegistroNotasDocente from './components/RegistroNotasDocente';
 import MatriculaCerrada from './components/MatriculaCerrada';
 import ActasNotasPendiente from './components/ActasNotasPendiente';
 import ActaCalificacionesCurso from './components/ActaCalificacionesCurso';
-
+import MisCalificacionesEstudiante from './components/MisCalificacionesEstudiante'
+import BoletaDetalleAlumno from './components/BoletaDetalleAlumno';
+import PerfilDocente from './components/PerfilDocente';
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
 import './App.css';
@@ -31,7 +33,7 @@ function App() {
 
   const [rolActivo, setRolActivo] = useState('profesor'); // 👈 'estudiante' o 'profesor'
 
-  const [estudianteIdId, setEstudianteIdId] = useState(4);
+  const [estudianteIdId, setEstudianteIdId] = useState(1);
   const [profesorIdId, setProfesorIdId] = useState(1); // 👈 Cambia aquí: 1 (Juan) o 2 (Rosa)
 
   // 🔥 CONTROL DE PESTAÑAS: Forzamos la selección inicial del sub-menú en 'perfil'
@@ -50,6 +52,11 @@ function App() {
   const [cursoNotaActivo, setCursoNotaActivo] = useState(null);
 
   const [semestreIdActivo, setSemestreIdActivo] = useState(1);
+
+  const [vistaActiva, setVistaActiva] = useState('perfil');
+  const [cursoSeleccionado, setCursoSeleccionado] = useState(null);
+
+  const [fotoParaSidebar, setFotoParaSidebar] = useState(null);
 
 
   // 🟢 AGREGA ESTE ESTADO JUNTO A TU VARIABLE fasesCalendario EN APP.JS:
@@ -123,16 +130,20 @@ function App() {
         })
         .catch(err => console.error("Error al sincronizar perfil del estudiante:", err));
     } else if (rolActivo === 'profesor') {
-      // Si la sesión es de rol docente, consultamos su tabla correspondiente
-      axios.get(`http://localhost:5000/api/notas/profesores/perfil/${profesorIdId}`)
+      // 🚀 REPARADO: Cambiado profesorIdId por tu variable real profesorldld (con L minúscula)
+      axios.get(`http://localhost:5000/api/profesores/perfil-completo?profesor_id=${profesorIdId}`)
         .then(res => {
-          if (res.data) {
-            setNombreParaSidebar(`${res.data.nombres} ${res.data.apellidos}`);
+          if (res.data && res.data.datos_personales) {
+            const datos = res.data.datos_personales;
+            setNombreParaSidebar(`${datos.nombres} ${datos.apellidos}`);
+            setFotoParaSidebar(datos.url_foto);
           }
         })
         .catch(err => {
-          // Respaldo preventivo si aún no creas el endpoint de profesores
+          console.error("Error al sincronizar perfil del profesor:", err);
+          // 🚀 REPARADO: También aquí con L minúscula
           setNombreParaSidebar(profesorIdId === 1 ? "Juan Marcos Mendoza" : "Rosa Elvira García Torres");
+          setFotoParaSidebar(null);
         });
     }
   }, [estudianteIdId, profesorIdId, rolActivo]);
@@ -153,12 +164,13 @@ function App() {
       ) : (
         <SidebarProfesor
           profesorNombre={nombreParaSidebar}
+          // 📸 LA REPARACIÓN CRUCIAL: Sincronizamos la prop con el estado de la RAM
+          profesorFoto={fotoParaSidebar}
           isColapsado={sidebarColapsado}
           onToggleColapso={() => setSidebarColapsado(!sidebarColapsado)}
           vistaActiva={subSeccionActiva}
-          // 🚀 EL SECRETO: Cada vez que el docente pulse una pestaña del menú, limpiamos la RAM
           onCambiarVista={(nuevaVista) => {
-            setCursoNotaActivo(null); // 🔥 Resetea el curso seleccionado para que siempre abra el catálogo de tarjetas
+            setCursoNotaActivo(null);
             setSubSeccionActiva(nuevaVista);
           }}
         />
@@ -213,7 +225,33 @@ function App() {
           ) : subSeccionActiva === 'calificaciones' ? (
             <div className="panel-control">
               <h2>REPORTE CONSOLIDADO DE CALIFICACIONES</h2>
+              <p style={{ margin: '4px 0 16px 0', fontSize: '13px', color: '#64748b' }}>
+                Selecciona una asignatura para inspeccionar tu boleta de notas oficial.
+              </p>
+
+              {/* Inyectamos las tarjetas usando los IDs de sesión reales de tu App.js [01/21, 01/22] */}
+              <MisCalificacionesEstudiante
+                estudianteId={estudianteIdId}     // Pasa el ID 4 en sesión [01/21]
+                semestreId={semestreIdActivo}     // Pasa el Periodo 1 [01/22]
+                onVerCurso={(curso) => {
+                  console.log("-> Alumno desea inspeccionar libreta del curso:", curso);
+                  setCursoSeleccionadoEstudiante(curso);
+                  setSubSeccionActiva('boleta-detalle-alumno'); // Próximo paso: Abre la libreta del curso
+                }}
+              />
             </div>
+
+            // =========================================================================
+            // 🚀 NUEVA COMPUERTA: ABRE LA BOLETA DETALLADA BASADA EN TU CAPTURA DE PANTALLA
+            // =========================================================================
+          ) : subSeccionActiva === 'boleta-detalle-alumno' ? (
+            <BoletaDetalleAlumno
+              estudianteId={estudianteIdId}
+              curso={cursoSeleccionadoEstudiante}
+              semestreId={semestreIdActivo}
+              onRegresar={() => setSubSeccionActiva('calificaciones')} // Retorna limpio a las tarjetas
+            />
+            // =========================================================================
 
           ) : (
             /* 📘 Formulario de Matrícula Blindado contra Nulos */
@@ -245,13 +283,19 @@ function App() {
 
           /* 👨‍🏫 SECCIÓN DEL PROFESOR DINÁMICA CON 3 PESTAÑAS */
           subSeccionActiva === 'perfil' ? (
-            <div className="panel-control" key={`perf-prof-${profesorIdId}`}>
-              <h2>PERFIL PROFESIONAL DEL DOCENTE</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>Bienvenido al módulo de gestión pedagógica superior. Aquí se desglosan tus datos institucionales de cátedra.</p>
-              <div style={{ marginTop: '20px', fontSize: '15px', fontWeight: 'bold', color: '#16a34a' }}>
-                👨‍🏫 Sesión Activa: {nombreParaSidebar} (ID de Profesor: {profesorIdId})
-              </div>
-            </div>
+            <PerfilDocente
+              key={`perf-prof-real-${profesorIdId}`}
+              profesorId={profesorIdId}
+              // 🔄 Inyectamos esta prop para que el perfil pueda avisarle a App.js que actualice el Sidebar
+              onFotoActualizada={async () => {
+                console.log("-> [App.js] Sincronizando nueva foto con el Sidebar...");
+                // Aquí ejecutas la misma función que ya tienes en tu App.js para recargar 
+                // los datos del usuario logueado en el estado general de la sesión.
+                // Ejemplo: obtenerDatosUsuarioSesion(); 
+                // O una solución infalible de desarrollo:
+                window.location.reload();
+              }}
+            />
           ) : subSeccionActiva === 'cursos' ? (
             /* 🚀 UNIFICACIÓN DE INTEGRIDAD: Evaluamos la bandera deshabilitarCursosAlumno que ya está activa en TRUE */
             fasesCalendario.deshabilitarCursosAlumno ? (
@@ -366,8 +410,8 @@ function App() {
                   }}
                 />
               )
-            ) 
-          ): (
+            )
+          ) : (
             /* 🚀 CIERRE MATE DE LA CASCADA: Si no coincide con ninguna vista de arriba, no pinta nada roto */
             null
           ))}

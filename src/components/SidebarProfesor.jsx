@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SidebarProfesor = ({ profesorNombre, isColapsado, onToggleColapso, vistaActiva, onCambiarVista }) => {
+const SidebarProfesor = ({ profesorFoto, profesorNombre, isColapsado, onToggleColapso, vistaActiva, onCambiarVista }) => {
     return (
         /* Inyectamos el estado condicional de colapso */
         <div className={`sidebar ${isColapsado ? 'colapsado' : ''}`}>
@@ -73,9 +73,16 @@ const SidebarProfesor = ({ profesorNombre, isColapsado, onToggleColapso, vistaAc
                     alignItems: 'center',
                     justifyContent: 'center',
                     fontSize: '18px',
-                    flexShrink: 0
+                    flexShrink: 0,
+                    overflow: 'hidden', // ◄ Evita que la foto se desborde del círculo
+                    border: '1px solid #e2e8f0'
                 }}>
-                    👨‍🏫
+                    {/* 📸 AVATAR SINCRONIZADO: Si App.js le pasa la url_foto, la pinta; de lo contrario, deja el emoticón backup */}
+                    {profesorFoto ? (
+                        <img src={`http://localhost:5000${profesorFoto}`} alt="Nav Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        "👨‍🏫"
+                    )}
                 </div>
                 <div className="sidebar-usuario-info">
                     <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: '#1e293b' }}>
