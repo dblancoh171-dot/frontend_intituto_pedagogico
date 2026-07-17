@@ -19,7 +19,7 @@ const SidebarProfesor = ({ profesorFoto, profesorNombre, isColapsado, onToggleCo
 
                 {/* Listado de Opciones Exclusivas del Profesor */}
                 <div className="sidebar-menu">
-                    <div className="sidebar-item profesor-item">📊 <span>Inicio (Dashboard)</span></div>
+
                     <div
                         className={`sidebar-item ${vistaActiva === 'perfil' ? 'profesor-activo' : 'profesor-item'}`}
                         onClick={() => onCambiarVista('perfil')}
@@ -27,7 +27,13 @@ const SidebarProfesor = ({ profesorFoto, profesorNombre, isColapsado, onToggleCo
                     >
                         👤 <span>Perfil</span>
                     </div>
-                    <div className="sidebar-item profesor-item">📅 <span>Mi Horario</span></div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'horario' ? 'profesor-activo' : 'profesor-item'}`}
+                        onClick={() => onCambiarVista('horario')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        📅 <span>Mi Horario</span>
+                    </div>
 
                     {/* 📝 PESTAÑA: REGISTRO DE NOTAS (Dinamizada) */}
                     <div
@@ -56,7 +62,13 @@ const SidebarProfesor = ({ profesorFoto, profesorNombre, isColapsado, onToggleCo
                         📥 <span>Recepción de Actividades</span>
                     </div>
 
-                    <div className="sidebar-item profesor-item">👥 <span>Mis Alumnos</span></div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'mis-alumnos' ? 'profesor-activo' : 'profesor-item'}`}
+                        onClick={() => onCambiarVista('mis-alumnos')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        👥 <span>Mis Alumnos</span>
+                    </div>
                     <div className="sidebar-item profesor-item">🗂️ <span>Actas Consolidadas</span></div>
                     <div className="sidebar-item profesor-item">⚙️ <span>Configuración</span></div>
                 </div>

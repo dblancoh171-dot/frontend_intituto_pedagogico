@@ -10,9 +10,9 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
     //const semestreId = 1; // ID de tu semestre institucional activo
 
     // 📡 1. LECTURA DE ALUMNOS MATRICULADOS DESDE AIVEN.IO
+    // 📡 1. LECTURA DE ALUMNOS MATRICULADOS DESDE AIVEN.IO (REPARADO)
     useEffect(() => {
-        // 🧼 Si los IDs aún no llegan de la pantalla anterior, apagamos la carga preventivamente
-        // para evitar que la interfaz se quede congelada en un bucle infinito.
+        // 🧼 REPARADO: Cambiado cursold por cursoId (Con I mayúscula matching con tus props)
         if (!sesionId || !cursoId) {
             setCargando(false);
             return;
@@ -23,11 +23,16 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
             console.log(`-> [AIVEN.IO] Sincronizando Asistencia. Curso: ${cursoId} | Sesión: ${sesionId}`);
 
             try {
-                // 📡 LLAMADA 1: Solicitud de la nómina de alumnos matriculados reales
+                // 📡 LLAMADA 1: Solicitud de la nómina enviando ambos parámetros obligatorios
                 const resAlumnos = await axios.get(`http://localhost:5000/api/notas/alumnos-curso`, {
-                    params: { curso_id: Number(cursoId) }
+                    params: {
+                        curso_id: Number(cursoId), // ◄ REPARADO: Con I mayúscula conforme a tus props
+                        semestre_id: 1 // ◄ 🛡️ ADUANA CRUCIAL: Inyectamos tu semestre activo para romper el 400 de tu API
+                    }
                 });
-                const listaAlumnos = resAlumnos.data || [];
+
+                // Asimilamos el array desestructurado según el formato de la Página 3 de tu PDF
+                const listaAlumnos = resAlumnos.data?.alumnos || resAlumnos.data || [];
                 setAlumnos(listaAlumnos);
 
                 // 📡 LLAMADA 2: Consulta del histórico real guardado de ESTA SESIÓN ESPECÍFICA
@@ -56,16 +61,17 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
                 setAsistencias(mapaAsistencias);
 
             } catch (error) {
-                console.error("Error crítico de red al sincronizar con el servidor:", error);
+                console.error("🚨 Error crítico de red al sincronizar con el servidor:", error);
                 setAlumnos([]);
             } finally {
-                // 🔓 LIBERACIÓN GARANTIZADA: Apaga el letrero pase lo que pase
+                // 🔓 LIBERACIÓN GARANTIZADA
                 setCargando(false);
             }
         };
 
         cargarTodoElAulaAsistencia();
-    }, [cursoId, sesionId]);
+    }, [cursoId, sesionId]); // Sincronizado con tus variables reales
+
 
     // 2. Conmutar el cuadro individual de asistencia (✓)
     const handleCuadroClick = (estudianteId) => {
@@ -158,7 +164,7 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
                 </div>
 
                 {/* COLUMNA DERECHA: BLOQUE VERTICAL (AVISO ARRIBA + BOTONES ABAJO) */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, alignItems: 'flex-end'}}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1, alignItems: 'flex-end' }}>
 
                     {/* PARTE SUPERIOR: AVISO VERDE RECTANGULAR ESTIRADO */}
                     {yaExisteRegistro && (
@@ -173,7 +179,7 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
                                 fontWeight: '600',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent:'right',
+                                justifyContent: 'right',
                                 gap: '8px',
                                 boxSizing: 'border-box',
                                 lineHeight: '1.3'

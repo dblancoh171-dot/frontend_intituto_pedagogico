@@ -22,6 +22,8 @@ import ActaCalificacionesCurso from './components/ActaCalificacionesCurso';
 import MisCalificacionesEstudiante from './components/MisCalificacionesEstudiante'
 import BoletaDetalleAlumno from './components/BoletaDetalleAlumno';
 import PerfilDocente from './components/PerfilDocente';
+import MiHorarioDocente from './components/MiHorarioDocente';
+import MisAlumnosDocente from './components/MisAlumnosDocente'; 
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
 import './App.css';
@@ -57,6 +59,8 @@ function App() {
   const [cursoSeleccionado, setCursoSeleccionado] = useState(null);
 
   const [fotoParaSidebar, setFotoParaSidebar] = useState(null);
+
+
 
 
   // 🟢 AGREGA ESTE ESTADO JUNTO A TU VARIABLE fasesCalendario EN APP.JS:
@@ -295,6 +299,20 @@ function App() {
                 // O una solución infalible de desarrollo:
                 window.location.reload();
               }}
+            />
+          ) : subSeccionActiva === 'horario' ? (
+            /* 🚀 REPARACIÓN DEFINITIVA: Conectamos la pestaña 'Mi Horario' del Sidebar */
+            <MiHorarioDocente
+              key={`agenda-prof-${profesorIdId}`}
+              profesorId={profesorIdId}   // Envía el ID 1 de Juan Marcos en sesión
+              semestreId={1}              // Semestre activo
+            />
+          ) : subSeccionActiva === 'mis-alumnos' ? (
+            /* 🚀 REPARACIÓN DEFINITIVA: Conectamos la pestaña 'Mis Alumnos' del Sidebar */
+            <MisAlumnosDocente
+              key={`pool-alumn-prof-${profesorIdId}`}
+              profesorId={profesorIdId} // Envía el ID 1 de Juan Marcos en sesión
+              semestreId={1}            // Semestre activo
             />
           ) : subSeccionActiva === 'cursos' ? (
             /* 🚀 UNIFICACIÓN DE INTEGRIDAD: Evaluamos la bandera deshabilitarCursosAlumno que ya está activa en TRUE */
