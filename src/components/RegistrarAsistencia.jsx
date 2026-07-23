@@ -254,12 +254,13 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
                         console.log(`-> Alumno [${indice}] recibido de Aiven.io:`, al);
 
                         // 🔥 EL TRUCO DE INGENIERÍA: Doble lectura de seguridad por si MySQL o Express cambian las llaves
-                        const idClaveReal = al.estudiante_id || al.id || indice;
-                        const nombreReal = al.nombres || al.nombre || 'Estudiante';
-                        const apellidoReal = al.apellidos || al.apellido || 'Matriculado';
+                        const idClaveReal = al.estudiante_id || al.id;
+                        const idCodigo = al.codigo_estudiante;
+                        const nombreReal = al.nombres || 'Estudiante';
+                        const apellidoReal = al.apellidos || 'Matriculado';
 
                         // Sincronizamos la marca verde con la llave segura
-                        const marcado = asistencias[idClaveReal];
+                        const marcado = asistencias[String(idClaveReal)]; 
 
                         return (
                             <div
@@ -285,7 +286,7 @@ const RegistrarAsistencia = ({ sesionNumero, cursoNombre, cursoId, sesionId, onR
                                         {apellidoReal}, {nombreReal}
                                     </h3>
                                     <p style={{ margin: '3px 0 0 0', fontSize: '11.5px', color: '#64748b' }}>
-                                        Código ID: {idClaveReal}
+                                        Código: {idCodigo }
                                     </p>
                                 </div>
 

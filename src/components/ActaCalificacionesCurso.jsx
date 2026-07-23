@@ -7,8 +7,16 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState({});
     const [cambiosLocales, setCambiosLocales] = useState({});
+    const [nombreDocente, setNombreDocente] = useState('Cargando...');
+
 
     const [notificacion, setNotificacion] = useState({ visible: false, mensaje: '' });
+
+
+    const [actaCerrada, setActaCerrada] = useState(false);
+
+    const [datosActa, setDatosActa] = useState({ codigo: '', urlPdf: '' });
+
 
 
     const [modalPublicarAbierto, setModalPublicarAbierto] = useState(false); // 🔥 ¡Repara tu error de la línea 273!
@@ -16,6 +24,50 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
     const [publicandoEnRed, setPublicandoEnRed] = useState(false);
 
     const [modalAlertaFinalAbierto, setModalAlertaFinalAbierto] = useState(false);
+
+    // 📌 Coloca esto justo al inicio del bloque de carga en tu JSX
+    const spinnerStyles = (
+        <style>{`
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    `}</style>
+    );
+
+    // 📌 Agrega este estado arriba junto a tus otros useState
+    const [modalFecha, setModalFecha] = useState({ abierto: false, titulo: '', fecha: '', tipo: '' });
+
+    // Función para abrir el modal configurando los datos
+    const abrirModalFecha = (tituloEval, fechaString, tipoPlazo) => {
+        setModalFecha({
+            abierto: true,
+            titulo: tituloEval,
+            fecha: fechaString,
+            tipo: tipoPlazo
+        });
+    };
+
+    // Formateador completo: "Martes, 21 de Julio de 2026 - 11:59 PM"
+    const formatearFechaCompleta = (fechaString) => {
+        if (!fechaString) return 'No programada';
+        const fecha = new Date(fechaString);
+
+        const opciones = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        let fechaTexto = fecha.toLocaleDateString('es-PE', opciones);
+        fechaTexto = fechaTexto.replace(/^\w/, c => c.toUpperCase()); // Capitaliza el día
+
+        let horas = fecha.getHours();
+        const minutos = String(fecha.getMinutes()).padStart(2, '0');
+        const ampm = horas >= 12 ? 'PM' : 'AM';
+        horas = horas % 12 || 12;
+
+        return `${fechaTexto} a las ${horas}:${minutos} ${ampm}`;
+    };
+
+
+
+
 
     const ultimaEvaluacionDelArray = columnasNotas.length > 0 ? columnasNotas[columnasNotas.length - 1] : null;
 
@@ -120,32 +172,30 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                 console.log(`-> [AXIOS] Abriendo acta dinámica para Curso: ${idCursoSeguro} | Semestre: ${semestreId}`);
 
                 const response = await axios.get('http://localhost:5000/api/notas/alumnos-curso', {
-                    params: {
-                        curso_id: idCursoSeguro,
-                        semestre_id: semestreId
-                    }
+                    params: { curso_id: idCursoSeguro, semestre_id: semestreId }
                 });
 
-                // 🚀 CAPTURA FIEL DE ALUMNOS MATRICULADOS
+                // 🚀 1. CAPTURA DE ALUMNOS (Limpia y única declaración)
                 const listaAlumnos = response.data.alumnos || response.data.rows || response.data || [];
                 setAlumnos(listaAlumnos);
 
-                // 🚀 LECTURA ESTRICTA DE LA BASE DE DATOS: 
-                // Capturamos únicamente lo que viene de forma real de MySQL [01/07/2026]
-                const evaluacionesBD = response.data.configuracionNotas || response.data.evaluaciones || response.data.configuracion || [];
-                setColumnasNotas(evaluacionesBD);
+                // 🔒 2. REGLA DIRECTA DE LA BASE DE DATOS: Seteamos el estado real en frío
+                setActaCerrada(!!response.data.actaCerrada);
 
-                // Mapeamos el arreglo transformando los strings de fecha del Backend en objetos Date válidos
+                // 👨‍🏫 CAPTURA DINÁMICA: Seteamos el nombre real recibido de la base de datos
+                setNombreDocente(response.data.profesorNombre || 'Docente por Asignar');
+
+                // 🚀 3. LECTURA Y CONVERSIÓN DE FECHAS DE EVALUACIONES
+                const evaluacionesBD = response.data.configuracionNotas || response.data.evaluaciones || response.data.configuracion || [];
                 const evaluacionesProcesadas = evaluacionesBD.map(col => ({
                     ...col,
-                    // Convertimos la celda de Workbench a Date. Si viene nulo, nacerá abierto por seguridad.
                     fecha_inicio: col.fecha_inicio_ingreso ? new Date(col.fecha_inicio_ingreso) : null,
                     fecha_fin: col.fecha_fin_ingreso ? new Date(col.fecha_fin_ingreso) : null
                 }));
 
                 setColumnasNotas(evaluacionesProcesadas);
-
                 setCargando(false);
+
             } catch (error) {
                 console.error("🚨 Error al cargar el acta de notas dinámica:", error);
                 setCargando(false);
@@ -158,39 +208,63 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
     }, [curso, semestreId]);
 
 
+
+
+
+    // 📌 REEMPLAZO EXACTO EN LA PÁGINA 7 DEL PDF
     const handleCierreActaFinalGlobal = async () => {
         if (!ultimaEvaluacionDelArray) {
             alert("Error: No se registran unidades configuradas en la grilla.");
             return;
         }
 
-        const confirmar = window.confirm("¿Está completamente seguro de CERRAR EL ACTA FINAL? Esta acción es irreversible y congelará las calificaciones del salón en el historial oficial.");
+        const confirmar = window.confirm("¿Está completamente seguro de CERRAR EL ACTA FINAL? Esta acción es irreversible, promediará de forma ponderada dinámicamente y congelará las calificaciones.");
         if (!confirmar) return;
 
         try {
-            // El body viaja dinámico amarrado a tus props y al último ID real detectado
+            // Enlaza directo al endpoint maestro de tu backend
             const response = await axios.post('http://localhost:5000/api/notas/cerrar-acta-final', {
-                curso_id: curso.curso_id || curso.id, // Lee la desestructuración de tu prop de cabecera
+                curso_id: curso.curso_id || curso.id,
                 semestre_id: semestreId,
-                configuracion_nota_id: Number(ultimaEvaluacionDelArray.id), // ◄ ¡DINÁMICO! Envía el ID de la última unidad real
+                configuracion_nota_id: Number(ultimaEvaluacionDelArray.id),
                 profesor_id: profesorId
             });
 
-            setNotificacion({
-                visible: true,
-                mensaje: `📋 ¡Éxito! ${response.data.message}`
-            });
+            if (response.status === 200) {
+                // Seteamos los nuevos estados del candado institucional
+                setActaCerrada(true);
+                setDatosActa({
+                    codigo: response.data.codigo_acta,
+                    urlPdf: response.data.url_pdf
+                });
 
-            setTimeout(() => {
-                setNotificacion({ visible: false, mensaje: '' });
-                window.location.reload();
-            }, 2500);
+                setNotificacion({
+                    visible: true,
+                    mensaje: `📋 ¡Éxito! ${response.data.message}`
+                });
 
+                setTimeout(() => {
+                    setNotificacion({ visible: false, mensaje: '' });
+                    window.location.reload();
+                }, 2500);
+            }
         } catch (error) {
             console.error("🚨 Error crítico al consolidar el acta final:", error);
-            alert(error.response?.data?.message || "Ocurrió un error de red al intentar cerrar el acta final.");
+
+            // Si el backend activa el candado 409 preventivo de duplicados que pusimos en MySQL
+            if (error.response && error.response.status === 409) {
+                setActaCerrada(true);
+                setDatosActa({
+                    codigo: error.response.data.codigo_acta,
+                    urlPdf: error.response.data.url_pdf
+                });
+                alert(error.response.data.message);
+            } else {
+                alert(error.response?.data?.message || "Ocurrió un error de red al intentar cerrar el acta final.");
+            }
         }
     };
+
 
 
 
@@ -331,14 +405,48 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
     };
 
 
+    // 🛠️ REEMPLAZO COMPLETO PARA TU PANTALLA DE CARGA (LÍNEAS 134-142 APROX.)
     if (cargando) {
         return (
-            <div style={{ padding: '40px', textAlign: 'center', minHeight: '50vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', border: '4px solid #cbd5e1', borderTopColor: '#0f172a', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '13px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Abriendo registro de evaluación...</span>
+            <div style={{
+                padding: '40px',
+                textAlign: 'center',
+                minHeight: '70vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px',
+                backgroundColor: '#ffffff'
+            }}>
+                {/* 🔑 Inyectamos los Keyframes de CSS en caliente */}
+                {spinnerStyles}
+
+                {/* 🌀 EL CÍRCULO CON ROTACIÓN FLUIDA EN TIEMPO REAL */}
+                <div style={{
+                    width: '36px',
+                    height: '36px',
+                    border: '4px solid #e2e8f0',
+                    borderTopColor: '#1e3a8a', // Azul oscuro institucional
+                    borderRadius: '50%',
+                    // 🔥 AQUÍ SE ACTIVA EL MOVIMIENTO INFINITO
+                    animation: 'spin 0.8s linear infinite'
+                }} />
+
+                {/* Texto informativo de tu monitor */}
+                <span style={{
+                    fontSize: '13.5px',
+                    fontWeight: '750',
+                    color: '#475569',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px'
+                }}>
+                    Sincronizando carga de cátedra...
+                </span>
             </div>
         );
     }
+
 
     // 🛡️ EL AVISO PROFESIONAL SOLICITADO: Si la BD no arroja columnas, se bloquea y muestra este escudo [01/07/2026]
     if (!cargando && columnasNotas.length === 0) {
@@ -392,11 +500,11 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
             </div>
 
             {/* 📋 SECCIÓN 1: ENCABEZADO SUPERIOR MINIMALISTA CON ACCIONES */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <div style={{ textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', gap: '24px', width: '100%' }}>
+                <div style={{ textAlign: 'left', flex: '1' }}>
                     {/* Título de control de tu monitor */}
                     <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        REGISTRO DE NOTAS | PROFESOR: Dr. Alejandro Rivas
+                        REGISTRO DE NOTAS | PROFESOR: {nombreDocente.toUpperCase()}
                     </span>
                     <h1 style={{ margin: '4px 0 0 0', fontSize: '18px', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '-0.3px' }}>
                         REGISTRO DE CALIFICACIONES - CURSO: {curso.curso_nombre} ({curso.codigo || `SI-${curso.curso_id}`}) |  - 2026-I
@@ -404,95 +512,137 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                 </div>
 
                 {/* 🎮 BLOQUE DE BOTONES OPERATIVOS DE TU IMAGEN */}
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    {/* 🔵 BOTÓN AZUL: GUARDAR CAMBIOS */}
-                    <button
-                        type="button"
-                        // 🔥 El botón se congela físicamente si hay un error de rango (0-20) en la grilla
-                        disabled={existeErrorEnGrilla}
-                        onClick={ejecutarGuardadoMasivo}
-                        style={{
-                            backgroundColor: existeErrorEnGrilla ? '#cbd5e1' : '#1d63ed',
-                            color: existeErrorEnGrilla ? '#94a3b8' : '#ffffff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '0 20px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            // Cambia el cursor a modo prohibitivo si la grilla está rota
-                            cursor: existeErrorEnGrilla ? 'not-allowed' : 'pointer',
-                            height: '38px',
-                            boxShadow: existeErrorEnGrilla ? 'none' : '0 2px 4px rgba(29, 99, 237, 0.2)',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        Guardar Cambios
-                    </button>
-                    {/* 🟠 BOTÓN NARANJA: PUBLICAR NOTAS */}
-                    <button
-                        type="button"
-                        // 🔥 También se congela si hay un error de rango en tu monitor
-                        disabled={existeErrorEnGrilla}
-                        onClick={() => setModalPublicarAbierto(true)}
-                        style={{
-                            backgroundColor: existeErrorEnGrilla ? '#cbd5e1' : '#f97316',
-                            color: existeErrorEnGrilla ? '#94a3b8' : '#ffffff',
-                            border: 'none',
-                            borderRadius: '6px',
-                            padding: '0 20px',
-                            fontSize: '13px',
-                            fontWeight: '700',
-                            cursor: existeErrorEnGrilla ? 'not-allowed' : 'pointer',
-                            height: '38px',
-                            boxShadow: existeErrorEnGrilla ? 'none' : '0 2px 4px rgba(249, 115, 22, 0.2)',
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        Publicar Notas
-                    </button>
+                {/* 📌 REEMPLAZO SUPREMO: Alineación vertical perfecta para el aviso */}
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', height: 'fit-content' }}>
 
-                    {todasLasNotasPublicadas ? (
-                        <button
-                            type="button"
-                            onClick={handleCierreActaFinalGlobal}
-                            style={{
-                                backgroundColor: '#10b981', // Verde esmeralda corporativo premium
-                                color: '#ffffff',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '0 20px',
+                    {/* 🔒 AVISO DE CONTROL COMPACTO: Totalmente recto y con aire visual */}
+                    {actaCerrada && (
+                        <>
+                            <span style={{
                                 fontSize: '13px',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                height: '38px',
-                                boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
-                            📋 Cerrar Acta Final
-                        </button>
-                    ) : (
-                        <button
-                            type="button"
-                            disabled
-                            style={{
-                                backgroundColor: '#cbd5e1', // Gris plomo inhabilitado
-                                color: '#94a3b8',
-                                border: 'none',
+                                fontWeight: '750',
+                                color: '#ef4444',
+                                backgroundColor: '#fef2f2',
+                                padding: '8px 16px',
                                 borderRadius: '6px',
-                                padding: '0 20px',
-                                fontSize: '13px',
-                                fontWeight: '700',
-                                cursor: 'not-allowed',
-                                height: '38px'
-                            }}
-                            title="Esta acción se activará automáticamente cuando la última evaluación didáctica del ciclo sea publicada oficialmente."
-                        >
-                            🔒 Cerrar Acta Final
-                        </button>
+                                border: '1px solid #fee2e2',
+                                textTransform: 'uppercase',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                animation: 'fadeIn 0.2s ease-in-out'
+                            }}>
+                                ⚠️ ACTA CERRADA DEFINITIVAMENTE
+                            </span>
+
+                            {/* 🔥 BOTÓN AUXILIAR TEMPORAL SOLICITADO: Imprime el PDF oficial leyendo MySQL */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    // Forzamos la apertura del stream PDF en una nueva pestaña del navegador limpio
+                                    // Asume que para las pruebas, el Acta ID es 1. Puedes mapearlo dinámicamente si tienes el ID en el estado.
+                                    window.open(`http://localhost:5000/api/notas/acta-pdf?acta_id=1`, '_blank');
+                                }}
+                                style={{
+                                    backgroundColor: '#1d63ed',
+                                    color: '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0 20px',
+                                    fontSize: '12.5px',
+                                    fontWeight: '700',
+                                    cursor: 'pointer',
+                                    height: '38px',
+                                    boxShadow: '0 2px 4px rgba(29, 99, 237, 0.15)',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '6px',
+                                    transition: 'all 0.2s ease'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e40af'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1d63ed'}
+                            >
+                                📄 Imprimir Acta Auxiliar
+                            </button>
+                        </>
                     )}
 
+                    {/* 🔥 LA REGLA DE ORO ESTÉTICA: Absolutamente todos los botones operacionales 
+        SOLO se renderizan si el acta está ABIERTA (actaCerrada === false) */}
+                    {!actaCerrada && (
+                        <>
+                            {/* 🔵 BOTÓN AZUL: GUARDAR CAMBIOS */}
+                            <button
+                                type="button"
+                                // 🛠️ CORRECCIÓN: Se bloquea si hay un error en la grilla O si ya se publicaron las 4 notas
+                                disabled={existeErrorEnGrilla || todasLasNotasPublicadas}
+                                onClick={ejecutarGuardadoMasivo}
+                                style={{
+                                    backgroundColor: (existeErrorEnGrilla || todasLasNotasPublicadas) ? '#cbd5e1' : '#1d63ed',
+                                    color: (existeErrorEnGrilla || todasLasNotasPublicadas) ? '#94a3b8' : '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0 20px',
+                                    fontSize: '13px',
+                                    fontWeight: '700',
+                                    // Cursor cambia a "no permitido" si se bloquea
+                                    cursor: (existeErrorEnGrilla || todasLasNotasPublicadas) ? 'not-allowed' : 'pointer',
+                                    height: '38px',
+                                    boxShadow: (existeErrorEnGrilla || todasLasNotasPublicadas) ? 'none' : '0 2px 4px rgba(29, 99, 237, 0.15)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Guardar Cambios
+                            </button>
+
+                            {/* 🟠 BOTÓN NARANJA: PUBLICAR NOTAS */}
+                            <button
+                                type="button"
+                                // 🛠️ CORRECCIÓN: Se bloquea si hay un error en la grilla O si ya se publicaron las 4 notas
+                                disabled={existeErrorEnGrilla || todasLasNotasPublicadas}
+                                onClick={() => setModalPublicarAbierto(true)}
+                                style={{
+                                    backgroundColor: (existeErrorEnGrilla || todasLasNotasPublicadas) ? '#cbd5e1' : '#f97316',
+                                    color: (existeErrorEnGrilla || todasLasNotasPublicadas) ? '#94a3b8' : '#ffffff',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '0 20px',
+                                    fontSize: '13px',
+                                    fontWeight: '700',
+                                    cursor: (existeErrorEnGrilla || todasLasNotasPublicadas) ? 'not-allowed' : 'pointer',
+                                    height: '38px',
+                                    boxShadow: (existeErrorEnGrilla || todasLasNotasPublicadas) ? 'none' : '0 2px 4px rgba(249, 115, 22, 0.15)',
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Publicar Notas
+                            </button>
+
+                            {/* 🟢 BOTÓN VERDE: CERRAR ACTA FINAL (Solo si todas las notas están publicadas) */}
+                            {todasLasNotasPublicadas && (
+                                <button
+                                    type="button"
+                                    onClick={handleCierreActaFinalGlobal}
+                                    style={{
+                                        backgroundColor: '#10b981',
+                                        color: '#ffffff',
+                                        border: 'none',
+                                        borderRadius: '6px',
+                                        padding: '0 20px',
+                                        fontSize: '13px',
+                                        fontWeight: '700',
+                                        cursor: 'pointer',
+                                        height: '38px',
+                                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
+                                        transition: 'all 0.2s ease'
+                                    }}
+                                >
+                                    📋 Cerrar Acta Final
+                                </button>
+                            )}
+                        </>
+                    )}
                 </div>
+
             </div>
 
             {/* 🎚️ SECCIÓN 2: SÁBANA MATRICIAL EJECUTIVA DE TU MONITOR */}
@@ -509,25 +659,121 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                                 // Miramos si al menos el primer alumno de la lista ya tiene esta nota con bandera = 1
                                 const estaEvaluacionPublicada = alumnos.length > 0 && alumnos[0].publicados?.[col.id] === 1;
 
+
+
+                                // 🚀 LÓGICA DE CÁLCULO DE DÍAS RESTANTES
+                                const ahora = new Date();
+                                const fechaCierre = col.fecha_fin_ingreso ? new Date(col.fecha_fin_ingreso) : null;
+
+                                const evaluacionYaPublicada = alumnos.length > 0 && alumnos.some(alumno => {
+                                    return alumno.publicados && Number(alumno.publicados[col.id]) === 1;
+                                });
+
+                                let diasRestantes = null;
+                                let mostrarAlertaCierre = false;
+
+                                if (fechaCierre && fechaCierre > ahora && !evaluacionYaPublicada) {
+                                    const diferenciaTiempo = fechaCierre.getTime() - ahora.getTime();
+                                    diasRestantes = Math.ceil(diferenciaTiempo / (1000 * 60 * 60 * 24));
+
+                                    // Alerta activa solo si está en el rango de los 5 días críticos
+                                    if (diasRestantes > 0 && diasRestantes <= 5) {
+                                        mostrarAlertaCierre = true;
+                                    }
+                                }
+
                                 return (
                                     <th
                                         key={col.id}
                                         style={{
                                             padding: '12px 8px',
-                                            fontSize: '12px',
+                                            fontSize: '13px',
                                             fontWeight: '800',
                                             color: '#475569',
-                                            width: '120px',
+                                            width: '140px', // 💡 Aumentado ligeramente para evitar saltos de línea forzados por el ancho
                                             textAlign: 'center',
                                             lineHeight: '1.4'
                                         }}
                                     >
-                                        {col.nombre_nota || `EVALUACIÓN ${idx + 1}`}
 
-                                        {/* 📊 Porcentaje dinámico extraído de Workbench */}
-                                        <span style={{ display: 'block', fontSize: '10.5px', color: '#94a3b8', fontWeight: '600', marginTop: '2px' }}>
-                                            ({parseFloat(col.peso_porcentaje || 25).toFixed(0)}%)
+                                        {col.nombre_nota}
+
+                                        {/* 📊 Porcentaje en la misma línea */}
+                                        <span style={{ display: 'inline-block', fontSize: '11px', color: '#475569', fontWeight: '600', marginLeft: '4px' }}>
+                                            ({parseFloat(col.peso_porcentaje).toFixed(0)}%)
                                         </span>
+
+
+
+
+                                        {/* 🗓️ ICONOS DE CALENDARIO COMPACTOS */}
+                                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '6px' }}>
+                                            {/* Calendario Azul (Apertura) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => abrirModalFecha(col.nombre_nota, col.fecha_inicio_ingreso, 'apertura')}
+                                                title="Ver Fecha de Apertura"
+                                                style={{
+                                                    background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+                                                    fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    transition: 'transform 0.1s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                            >
+                                                <img width="18" height="18" src="https://img.icons8.com/ios/50/228BE6/calendar--v1.png" alt="calendar--v1" />
+                                            </button>
+
+                                            {/* Calendario Rojo (Cierre) */}
+                                            <button
+                                                type="button"
+                                                onClick={() => abrirModalFecha(col.nombre_nota, col.fecha_fin_ingreso, 'cierre')}
+                                                title="Ver Fecha de Cierre"
+                                                style={{
+                                                    background: 'none', border: 'none', padding: '4px', cursor: 'pointer',
+                                                    fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    transition: 'transform 0.1s'
+                                                }}
+                                                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.15)'}
+                                                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                                            >
+                                                <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAA6klEQVR4nO3azQrCMBAE4H08b3bn/U9qfYa6HiJBLbV/pmrJxs7AHDR0k49WRFAkMVfVnQFHA8Kjh/he6vW557eJgzubtJtJIfPbPIdPvfY+vzxIo6oX4Dxye1/a3+jXlcT58awNUA0gKQhPELu3nry1hUECIeasQgh8VQiBcwjjLebgMTF+RjrJfSBC+sl9IEL6+fjCN7/mvl0zQkBIICQHxJxVNg+RmcdgjTUjBIQEQnJAzFll8xCZeQzWWDNCQEggJAfEnFUIga8KIfBV+WdInftQtrSqpwEk/h2iMEzdVNV+5CuIEQ+5AY414SYxLQy+AAAAAElFTkSuQmCC" alt="calendar--v1" width={'18px'}></img>
+
+                                            </button>
+                                        </div>
+
+
+
+                                        {/* ⚠️ NUEVO: BANNER DINÁMICO DE ADVERTENCIA DE CIERRE */}
+                                        {mostrarAlertaCierre && (
+                                            <div style={{
+                                                marginTop: '8px',
+                                                backgroundColor: '#fef3c7', // Fondo amarillo suave idéntico a tu muestra
+                                                border: '1px solid #fcd34d',   // Borde ámbar sutil
+                                                borderRadius: '6px',
+                                                padding: '4px 8px',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '4px',
+                                                boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+                                                whiteSpace: 'nowrap'
+                                            }}>
+                                                {/* Icono de advertencia */}
+                                                <span style={{ fontSize: '12px', color: '#b45309' }}>⚠️</span>
+                                                {/* Texto informativo */}
+                                                <span style={{
+                                                    fontSize: '11px',
+                                                    fontWeight: '750',
+                                                    color: '#b45309', // Texto marrón/ámbar oscuro institucional
+                                                    letterSpacing: '0.1px'
+                                                }}>
+                                                    Cierra en {diasRestantes} {diasRestantes === 1 ? 'día' : 'días'}
+                                                </span>
+                                            </div>
+                                        )}
+
+
 
                                         {/* 🔥 EL DETALLE INTERACTIVO: Si la nota está firmada, brota la etiqueta verde en tu monitor [30/06/2026] */}
                                         {estaEvaluacionPublicada && (
@@ -583,7 +829,7 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                                                     👤
                                                 </div>
                                                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
-                                                    A00{alumno.estudiante_id || index + 1} - {alumno.apellidos_nombres || `${alumno.apellidos || ''} ${alumno.nombres || ''}`}
+                                                    {alumno.apellidos_nombres || `${alumno.apellidos || ''} ${alumno.nombres || ''}`} - {alumno.codigo_estudiante}
                                                 </span>
                                             </div>
                                         </td>
@@ -626,7 +872,7 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                                             const fueraDeFechaEvaluacion = yaEstamosEnLaUltimaEvaluacion ? false : fueraDeFechaCronologica;
 
                                             // 🛡️ EL FILTRO SUPREMO DE BLOQUEO: Se congela si ya se publicó en la BD O si está fuera de fecha cronológica
-                                            const casillaBloqueada = notaYaPublicadaEnBD || fueraDeFechaEvaluacion;
+                                            const casillaBloqueada = notaYaPublicadaEnBD || fueraDeFechaEvaluacion || actaCerrada;
 
                                             // 🧠 EXTRACCIÓN MAESTRA: Busca la nota haciendo match exacto con el configuracion_nota_id de tu imagen (13, 14, 15, 16)
                                             // const notaEnBD =
@@ -737,14 +983,52 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
                                 Seleccione la Unidad Didáctica a Cerrar:
                             </label>
                             <select
-                                value={evaluacionAPublicar}
-                                onChange={(e) => setEvaluacionAPublicar(e.target.value)}
-                                style={{ width: '100%', height: '40px', borderRadius: '6px', border: '1px solid #cbd5e1', padding: '0 10px', fontSize: '13.5px', fontWeight: '600', color: '#0f172a', backgroundColor: '#ffffff', outline: 'none' }}
+                                value={evaluacionAPublicar} // 🔥 Usa tu estado real
+                                onChange={(e) => setEvaluacionAPublicar(e.target.value)} // 🔥 Usa tu setter real
+                                style={{
+                                    width: '100%',
+                                    height: '40px',
+                                    borderRadius: '6px',
+                                    border: '1px solid #cbd5e1',
+                                    padding: '0 10px',
+                                    fontSize: '13px',
+                                    color: '#334155',
+                                    backgroundColor: '#ffffff',
+                                    fontWeight: '650'
+                                }}
                             >
                                 <option value="">-- Seleccionar Evaluación Vigente --</option>
-                                {columnasNotas.map(col => (
-                                    <option key={col.id} value={col.id}>{col.nombre_nota}</option>
-                                ))}
+
+                                {/* 📌 FILTRADO DINÁMICO CORREGIDO: SE SINCRONIZA AL 100% CON LAS LLAVES DE TU GRILLA */}
+                                {columnasNotas
+                                    .filter(columna => {
+                                        // 🚀 LA CLAVE ES EL ID PURO: Usamos 'columna.id' tal como lo hace tu grilla principal
+                                        const idEvaluacion = columna.id;
+
+                                        // CRUCE CON LA BASE DE DATOS: Evaluamos si el primer alumno ya tiene publicada esta evaluación
+                                        const yaEstaPublicadaEnBD = alumnos.length > 0 && alumnos[0].publicados?.[idEvaluacion] === 1;
+
+                                        // Retornamos TRUE únicamente para las que NO están publicadas (como la Evaluación 4)
+                                        return !yaEstaPublicadaEnBD;
+                                    })
+                                    .map((columna, idx) => {
+                                        const idEvaluacion = columna.id;
+
+                                        // Mantiene el nombre real que viene parametrizado de la base de datos
+                                        const nombreEvaluacion = columna.nombre_nota || `Evaluacion ${idx + 1}`;
+
+                                        return (
+                                            <option key={idEvaluacion} value={idEvaluacion}>
+                                                {nombreEvaluacion}
+                                            </option>
+                                        );
+                                    })
+                                }
+
+
+
+
+
                             </select>
                         </div>
 
@@ -838,6 +1122,69 @@ const ActaCalificacionesCurso = ({ curso, profesorId, semestreId, onRegresar }) 
             }}>
                 <span>{notificacion.mensaje}</span>
             </div>
+
+            {/* 📌 MODAL ESTILIZADO DE DETALLE DE FECHA ACADÉMICA */}
+            {modalFecha.abierto && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(3px)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999,
+                    animation: 'fadeIn 0.15s ease'
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff', borderRadius: '12px', width: '90%', maxWidth: '420px',
+                        padding: '24px', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                        textAlign: 'center', border: '1px solid #e2e8f0'
+                    }}>
+                        {/* Icono de cabecera dinámico según el tipo */}
+                        <div style={{
+                            width: '56px', height: '56px', borderRadius: '50%',
+                            backgroundColor: modalFecha.tipo === 'apertura' ? '#eff6ff' : '#fef2f2',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            margin: '0 auto 16px auto', fontSize: '24px'
+                        }}>
+                            {modalFecha.tipo === 'apertura' ? '📅' : '⏳'}
+                        </div>
+
+                        {/* Títulos */}
+                        <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase' }}>
+                            {modalFecha.titulo}
+                        </h3>
+                        <p style={{ margin: '0 0 20px 0', fontSize: '12px', fontWeight: '750', color: modalFecha.tipo === 'apertura' ? '#1d63ed' : '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            Plazo oficial de {modalFecha.tipo === 'apertura' ? 'Apertura de Sistema' : 'Cierre de Sistema'}
+                        </p>
+
+                        {/* Contenedor de Fecha Completa */}
+                        <div style={{
+                            backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px',
+                            padding: '14px', marginBottom: '24px', color: '#334155', fontSize: '14px',
+                            fontWeight: '600', lineHeight: '1.5'
+                        }}>
+                            {formatearFechaCompleta(modalFecha.fecha)}
+                        </div>
+
+                        {/* Botón Entendido */}
+                        <button
+                            type="button"
+                            onClick={() => setModalFecha({ ...modalFecha, abierto: false })}
+                            style={{
+                                width: '100%', height: '40px', backgroundColor: '#1f2937', color: '#ffffff',
+                                border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '700',
+                                cursor: 'pointer', transition: 'background-color 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#111827'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1f2937'}
+                        >
+                            Entendido, Cerrar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+
+
+
+
         </div>
     );
 };

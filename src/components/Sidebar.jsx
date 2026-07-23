@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, onCambiarVista }) => {
+const Sidebar = ({ estudianteFoto, estudianteNombre, isColapsado, onToggleColapso, vistaActiva, onCambiarVista }) => {
     return (
         <div className={`sidebar ${isColapsado ? 'colapsado' : ''}`}>
 
@@ -17,7 +17,6 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
 
                 {/* Listado de Opciones del Alumno Interactivas */}
                 <div className="sidebar-menu">
-                    <div className="sidebar-item">📊 <span>Dashboard</span></div>
 
                     {/* 🔥 PESTAÑA PERFIL */}
                     <div
@@ -25,6 +24,13 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                         onClick={() => onCambiarVista('perfil')}
                     >
                         👤 <span>Mi Perfil</span>
+                    </div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'horario' ? 'estudiante-activo' : 'estudiante-item'}`}
+                        onClick={() => onCambiarVista('horario')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        📅 <span>Mi Horario</span>
                     </div>
 
                     {/* 🔥 PESTAÑA MATRÍCULA */}
@@ -56,15 +62,28 @@ const Sidebar = ({ estudianteNombre, isColapsado, onToggleColapso, vistaActiva, 
                     </div>
                     {/* ========================================================================= */}
 
-                    <div className="sidebar-item">⏳ <span>Historial Académico</span></div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'historial' ? 'estudiante-activo' : 'estudiante-item'}`}
+                        onClick={() => onCambiarVista('historial')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        ⏳ <span>Historial Académico</span>
+                    </div>
                     <div className="sidebar-item">💳 <span>Mis Pagos</span></div>
                     <div className="sidebar-item">⚙️ <span>Configuración</span></div>
                 </div>
             </div>
 
             <div className="sidebar-perfil" style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '15px 16px', borderTop: '1px solid #f1f5f9', margin: '0 12px' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#e2e8f0', display: 'flex', alignItems: 'center', justifyValue: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
-                    👤
+                <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0, overflow: 'hidden', border: '1px solid #cbd5e1' }}>
+
+                    {/* 📸 CLONACIÓN MULTIMEDIA SINCRÓNICA */}
+                    {estudianteFoto ? (
+                        <img src={`http://localhost:5000${estudianteFoto}`} alt="Nav Estudiante" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                        "👤"
+                    )}
+
                 </div>
                 <div className="sidebar-usuario-info">
                     <h4 style={{ margin: 0, fontSize: '13.5px', fontWeight: '700', color: '#1e293b' }}>

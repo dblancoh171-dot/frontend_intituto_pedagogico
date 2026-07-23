@@ -23,7 +23,11 @@ import MisCalificacionesEstudiante from './components/MisCalificacionesEstudiant
 import BoletaDetalleAlumno from './components/BoletaDetalleAlumno';
 import PerfilDocente from './components/PerfilDocente';
 import MiHorarioDocente from './components/MiHorarioDocente';
-import MisAlumnosDocente from './components/MisAlumnosDocente'; 
+import MisAlumnosDocente from './components/MisAlumnosDocente';
+import PerfilEstudiante from './components/PerfilEstudiante';
+import HistorialAcademico from './components/HistorialAcademico';
+import MiHorarioEstudiante from './components/MiHorarioEstudiante';
+import ActasConsolidadasDocente from './components/ActasConsolidadasDocente';
 
 //import RegistroNotasForm from './components/RegistroNotasForm';
 import './App.css';
@@ -125,11 +129,20 @@ function App() {
 
     // 📡 APERTURA INTELIGENTE: Traemos los datos de identidad al cargar la sesión
     if (rolActivo === 'estudiante') {
-      axios.get(`http://localhost:5000/api/estudiantes/perfil/${estudianteIdId}`)
+      axios.get('http://localhost:5000/api/estudiantes/perfil-completo', {
+        params: { estudiante_id: Number(estudianteIdId) } // Envia el ID 1 de la sesión
+      })
         .then(res => {
           if (res.data) {
-            // Unificamos nombres y apellidos en caliente desde Aiven.io
-            setNombreParaSidebar(`${res.data.nombres} ${res.data.apellidos}`);
+            // Como MySQL devuelve un array, extraemos la primera fila de forma segura [0]
+            const datos = Array.isArray(res.data) ? res.data[0] : res.data;
+
+            if (datos) {
+              // Seteamos el nombre y la foto real de Dragon Ball en la RAM central
+              setNombreParaSidebar(`${datos.nombres} ${datos.apellidos}`);
+              setFotoParaSidebar(datos.url_foto); // ◄ AHORA SÍ VIAJA EL STRING AL SIDEBAR
+              console.log("-> [ÉXITO APP.JS] Foto del estudiante cargada en RAM:", datos.url_foto);
+            }
           }
         })
         .catch(err => console.error("Error al sincronizar perfil del estudiante:", err));
@@ -160,6 +173,7 @@ function App() {
       {rolActivo === 'estudiante' ? (
         <Sidebar
           estudianteNombre={nombreParaSidebar}
+          estudianteFoto={fotoParaSidebar}
           isColapsado={sidebarColapsado}
           onToggleColapso={() => setSidebarColapsado(!sidebarColapsado)}
           vistaActiva={subSeccionActiva} // Enviamos cuál opción debe brillar en azul
@@ -185,16 +199,26 @@ function App() {
       <div className="contenido-principal">
         {rolActivo === 'estudiante' ? (
           subSeccionActiva === 'perfil' ? (
-            /* 👤 Componente de Ficha del Alumno (Crea un div temporal o tu componente si ya lo tienes) */
-            <div className="panel-control" key={`perf-est-${estudianteIdId}`}>
-              <h2>PERFIL ACADÉMICO DEL ESTUDIANTE</h2>
-              <p style={{ marginTop: '15px', color: '#475569' }}>
-                Bienvenido al portal institucional. Aquí se desplegará tu información de contacto, ficha de matrícula vigente y estados de cuenta generales.
-              </p>
-              <div style={{ marginTop: '20px', fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a' }}>
-                Documento / Código detectado en sesión: {nombreParaSidebar} (ID: {estudianteIdId})
-              </div>
-            </div>
+            <PerfilEstudiante
+              key={`perf-estud-real-${estudianteIdId}`} // Jala tu variable de sesión del alumno
+              estudianteId={estudianteIdId}
+              onFotoActualizada={() => {
+                console.log("-> [App.js] Sincronizando avatar del estudiante con el Sidebar...");
+                window.location.reload(); // Refresco instantáneo de la sesión de Ana María
+              }}
+            />
+          ) : subSeccionActiva === 'horario' ? (
+            /* 🚀 REPARACIÓN DEFINITIVA: Conectamos la pestaña 'Mi Horario' del Sidebar */
+            <MiHorarioEstudiante
+              key={`horario-estud-real-${estudianteIdId}`}
+              usuarioId={estudianteIdId} // Pasa el ID inmutable de la sesión
+            />
+          ) : subSeccionActiva === 'historial' ? (
+            /* 🚀 REPARACIÓN DEFINITIVA: Conectamos la pestaña 'Historial Académico' del Sidebar */
+            <HistorialAcademico
+              key={`historial-estud-${estudianteIdId}`}
+              estudianteId={estudianteIdId} // Envía tu variable real de sesión
+            />
 
 
           ) : subSeccionActiva === 'cursos' ? (
@@ -402,6 +426,13 @@ function App() {
 
               sesionId={sesionParaContenido?.id}
               onRegresar={() => setSubSeccionActiva('sesiones')}
+            />
+          ) : subSeccionActiva === 'actas-consolidadas' ? (
+            /* 📊 NUEVO MÓDULO CONSOLIDADO: Renderiza el historial analítico directo de MySQL */
+            <ActasConsolidadasDocente
+              key={`actas-cons-${profesorIdId}`}
+              profesorId={profesorIdId}   // Envía el ID 1 de Juan Marcos [01.4]
+              semestreId={semestreIdActivo} // Envía el Periodo 1 activo [01.4]
             />
           ) : (subSeccionActiva === 'notas' || subSeccionActiva === 'registro-notas' || subSeccionActiva === 'calificaciones') ? (
             /* 🚀 COMPORTAMIENTO BLINDADO: El módulo opera estrictamente si la subsección es 'notas' */

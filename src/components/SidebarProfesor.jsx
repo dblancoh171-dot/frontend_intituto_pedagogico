@@ -69,7 +69,13 @@ const SidebarProfesor = ({ profesorFoto, profesorNombre, isColapsado, onToggleCo
                     >
                         👥 <span>Mis Alumnos</span>
                     </div>
-                    <div className="sidebar-item profesor-item">🗂️ <span>Actas Consolidadas</span></div>
+                    <div
+                        className={`sidebar-item ${vistaActiva === 'actas-consolidadas' ? 'profesor-activo' : 'profesor-item'}`}
+                        onClick={() => onCambiarVista('actas-consolidadas')}
+                        style={{ cursor: 'pointer' }}
+                    >
+                        🗂️ <span>Actas Consolidadas</span>
+                    </div>
                     <div className="sidebar-item profesor-item">⚙️ <span>Configuración</span></div>
                 </div>
             </div>

@@ -74,7 +74,7 @@ const MisCursosEstudiante = ({ estudianteId, semestreId, onAbrirCurso }) => {
                         >
                             <div>
                                 <span style={{ fontSize: '10px', fontWeight: '800', backgroundColor: '#eff6ff', color: '#2563eb', padding: '3px 8px', borderRadius: '4px', textTransform: 'uppercase' }}>
-                                    {c.codigo_curso}
+                                    {c.curso_codigo}
                                 </span>
                                 <h3 style={{ margin: '8px 0 2px 0', fontSize: '15px', fontWeight: '700', color: '#0f172a' }}>
                                     {c.curso_nombre}

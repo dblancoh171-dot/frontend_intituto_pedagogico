@@ -43,7 +43,7 @@ const MisCalificacionesEstudiante = ({ estudianteId, semestreId, onVerCurso }) =
                         >
                             <div>
                                 <span style={{ backgroundColor: '#f1f5f9', color: '#475569', fontSize: '10.5px', fontWeight: '750', padding: '3px 8px', borderRadius: '4px' }}>
-                                    {curso.codigo}
+                                    {curso.codigo_curso}
                                 </span>
                                 <h3 style={{ margin: '12px 0 4px 0', fontSize: '14px', fontWeight: '800', color: '#1e293b', textTransform: 'uppercase' }}>
                                     {curso.curso_nombre}
